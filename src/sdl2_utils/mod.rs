@@ -1,14 +1,22 @@
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, render::Canvas, video::Window, EventPump};
+use gl;
+
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect, render::Canvas, video::{Window, GLContext }, EventPump};
 
 pub struct Sdl2Utils {
     pub canvas: Canvas<Window>,
-    pub event_pump: EventPump
+    pub event_pump: EventPump,
+    pub gl_context: GLContext
 }
 
 impl Sdl2Utils {
 
     pub fn render(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(255, 200, 0));
+        //Test an OpenGL call
+        unsafe {
+            gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        }
+
+
         self.canvas.clear();
 
         // Draw a red rectangle
