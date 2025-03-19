@@ -19,7 +19,7 @@ const VERTEX_SHADER: &str = r#"#version 330 core
   }
 "#;
 
-const FRAG_SHADER: &str = r#"#version 330 core
+const FRAGMENT_SHADER: &str = r#"#version 330 core
   out vec4 final_color;
 
   void main() {
@@ -35,7 +35,6 @@ impl Sdl2Utils {
             gl::ClearColor(0.3, 0.3, 0.5, 1.0);
         }
 
-
         self.canvas.clear();
 
         // Draw a red rectangle
@@ -44,18 +43,20 @@ impl Sdl2Utils {
         //Lets see if I can mix the two
         unsafe {
 
-            //
+            //Create the VAO and ensure it is assigned
             let mut vao = 0;
             gl::GenVertexArrays(1, &mut vao);
-
-            println!("{}", vao);
-
             assert_ne!(vao, 0);
+
+            //All good? Bind it.
             gl::BindVertexArray(vao);
 
+            //Create the VBO and ensure it is assigned
             let mut vbo = 0;
             gl::GenBuffers(1, &mut vbo);
             assert_ne!(vbo, 0);
+
+            //All good? Bind it and assign some triangle data.
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
@@ -64,6 +65,7 @@ impl Sdl2Utils {
                 gl::STATIC_DRAW
             );
 
+            //Tell OpenGL what we will be binding
             gl::VertexAttribPointer(
                 0,
                 3,
@@ -74,11 +76,58 @@ impl Sdl2Utils {
             );
             gl::EnableVertexAttribArray(0);
 
+            //Now for our shaders
+            let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
+            assert_ne!(vertex_shader, 0);
+            gl::ShaderSource(
+                vertex_shader,
+                1,
+                &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
+                &(VERTEX_SHADER.len().try_into().unwrap())
+            );
+            gl::CompileShader(vertex_shader);
+            let mut success = 0;
+            gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
+
+            assert_ne!(success, 0);
+
+            //And the fragment shader
+            let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
+            assert_ne!(fragment_shader, 0);
+            gl::ShaderSource(
+                fragment_shader,
+                1,
+                &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
+                &(FRAGMENT_SHADER.len().try_into().unwrap())
+            );
+            gl::CompileShader(fragment_shader);
+            let mut success = 0;
+            gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
+
+            assert_ne!(success, 0);
+
+            //Finally link up the shader program
+            let shader_program = gl::CreateProgram();
+            assert_ne!(shader_program, 0);
+            gl::AttachShader(shader_program, vertex_shader);
+            gl::AttachShader(shader_program, fragment_shader);
+            gl::LinkProgram(shader_program);
+
+            let mut success = 0;
+            gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
+
+            assert_ne!(success, 0);
+
+            gl::DeleteShader(vertex_shader);
+            gl::DeleteShader(fragment_shader);
+
+            gl::UseProgram(shader_program);
+
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
         // Show it on the screen
-        self.canvas.present();
+        self.canvas.window().gl_swap_window();
     }
 
     pub fn poll_events(&mut self) -> Result<(), String> {
