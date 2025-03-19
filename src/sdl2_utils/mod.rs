@@ -23,25 +23,18 @@ const FRAGMENT_SHADER: &str = r#"#version 330 core
   out vec4 final_color;
 
   void main() {
-    final_color = vec4(1.0, 0.5, 0.2, 1.0);
+    final_color = vec4(0.2, 0.5, 0.2, 1.0);
   }
 "#;
 
 impl Sdl2Utils {
 
     pub fn render(&mut self) {
-        //Test an OpenGL call
         unsafe {
-            gl::ClearColor(0.3, 0.3, 0.5, 1.0);
-        }
 
-        self.canvas.clear();
+            gl::Clear(gl::COLOR_BUFFER_BIT);
 
-        // Draw a red rectangle
-        self.canvas.set_draw_color(Color::RGB(255, 0, 0));
-        
-        //Lets see if I can mix the two
-        unsafe {
+            gl::ClearColor(0.5, 0.5, 1.0, 1.0);
 
             //Create the VAO and ensure it is assigned
             let mut vao = 0;
