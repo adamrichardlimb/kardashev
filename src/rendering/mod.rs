@@ -1,31 +1,16 @@
+mod shaders;
+
 extern crate gl;
 
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, render::Canvas, video::{Window, GLContext }, EventPump};
+use sdl2::{event::Event, keyboard::Keycode, video::Window, EventPump};
 
-pub struct Sdl2Utils {
-    pub canvas: Canvas<Window>,
-    pub event_pump: EventPump,
-    pub gl_context: GLContext
+
+struct Renderer {
+    shaders_initialised: bool,
 }
 
 type Vertex = [f32; 3];
 const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0],[0.5, -0.5, 0.0],[0.0, 0.5, 0.0]];
-
-const VERTEX_SHADER: &str = r#"#version 330 core
-  layout (location = 0) in vec3 pos;
-
-  void main() {
-    gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-  }
-"#;
-
-const FRAGMENT_SHADER: &str = r#"#version 330 core
-  out vec4 final_color;
-
-  void main() {
-    final_color = vec4(0.2, 0.5, 0.2, 1.0);
-  }
-"#;
 
 pub fn render(window: &mut Window) {
         unsafe {
@@ -52,7 +37,7 @@ pub fn render(window: &mut Window) {
             gl::BufferData(
                 gl::ARRAY_BUFFER,
                 size_of_val(&VERTICES) as isize,
-                VERTICES.as_ptr().cast(),
+  VERTICES.as_ptr().cast(),
                 gl::STATIC_DRAW
             );
 
@@ -68,51 +53,7 @@ pub fn render(window: &mut Window) {
             gl::EnableVertexAttribArray(0);
 
             //Now for our shaders
-            let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-            assert_ne!(vertex_shader, 0);
-            gl::ShaderSource(
-                vertex_shader,
-                1,
-                &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
-                &(VERTEX_SHADER.len().try_into().unwrap())
-            );
-            gl::CompileShader(vertex_shader);
-            let mut success = 0;
-            gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
-
-            assert_ne!(success, 0);
-
-            //And the fragment shader
-            let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-            assert_ne!(fragment_shader, 0);
-            gl::ShaderSource(
-                fragment_shader,
-                1,
-                &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
-                &(FRAGMENT_SHADER.len().try_into().unwrap())
-            );
-            gl::CompileShader(fragment_shader);
-            let mut success = 0;
-            gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-
-            assert_ne!(success, 0);
-
-            //Finally link up the shader program
-            let shader_program = gl::CreateProgram();
-            assert_ne!(shader_program, 0);
-            gl::AttachShader(shader_program, vertex_shader);
-            gl::AttachShader(shader_program, fragment_shader);
-            gl::LinkProgram(shader_program);
-
-            let mut success = 0;
-            gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
-
-            assert_ne!(success, 0);
-
-            gl::DeleteShader(vertex_shader);
-            gl::DeleteShader(fragment_shader);
-
-            gl::UseProgram(shader_program);
+            shaders::create_shader("src/rendering/shaders/vertex_shader.txt", "src/rendering/shaders/fragment_shader.txt"); 
 
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
@@ -134,4 +75,4 @@ pub fn render(window: &mut Window) {
         }
 
         return Ok(());
-    }
+  }
