@@ -22,6 +22,9 @@ pub fn main() -> Result<(), String> {
     //Point our OpenGL calls to SDL2 so they can be fed to the driver
     let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
+    //This is our renderer
+    let renderer = rendering::init(&mut window);
+
     //This is our input
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -32,7 +35,7 @@ pub fn main() -> Result<(), String> {
             break 'main;
         }
 
-        rendering::render(&mut window);
+        renderer.render();
     }
 
     Ok(())
