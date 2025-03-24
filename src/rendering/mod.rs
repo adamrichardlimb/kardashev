@@ -80,18 +80,3 @@ impl Renderer<'_> {
         self.window.gl_swap_window();
     }
 }
-
-pub fn poll_events(event_pump: &mut EventPump) -> Result<(), String> {
-    for event in event_pump.poll_iter() {
-        match event {
-            Event::Quit { .. }
-            | Event::KeyDown {
-                keycode: Some(Keycode::Escape),
-                ..
-            } => return Err("User wishes to close program.".to_string()),
-            _ => return Ok(())
-        }
-    }
-
-    return Ok(());
-}

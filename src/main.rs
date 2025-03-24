@@ -25,11 +25,14 @@ pub fn main() -> Result<(), String> {
     //This is our renderer
     let renderer = rendering::init(&mut window);
 
-    //This is our input
+    //This is our input and the events it fires
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_subsystem = sdl_context.event().unwrap();
+
+    let mut input_handler = input::init(event_pump, event_subsystem);
 
     'main: loop {
-        let events = rendering::poll_events(&mut event_pump);
+        let events = input_handler.poll_events();
         
         if events.is_err() {
             break 'main;
