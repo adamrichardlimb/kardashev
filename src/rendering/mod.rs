@@ -1,5 +1,5 @@
 mod shaders;
-mod camera;
+pub mod camera;
 
 use camera::{Camera, Lens};
 use gl;
@@ -47,7 +47,6 @@ pub fn init(window: &mut Window) -> Renderer {
     return Renderer {
         window,
         shader,
-        active_camera: camera,
         active_lens: lens,
         start_time
     }
@@ -56,20 +55,19 @@ pub fn init(window: &mut Window) -> Renderer {
 pub struct Renderer<'a> {
     window: &'a mut Window,
     shader: Shader,
-    active_camera: Camera,
     active_lens: Lens,
     start_time: Instant
 }
 
 impl Renderer<'_> {
-    pub fn render(&self) {
+    pub fn render(&self, camera: &Camera) {
         unsafe {
             
             gl::Enable(gl::DEPTH_TEST);
 
             let projection_matrix: Mat4 = camera::get_projection_matrix(&self.active_lens);
             
-            let view_matrix: Mat4 = camera::get_view_matrix(&self.active_camera);
+            let view_matrix: Mat4 = camera::get_view_matrix(camera);
 
             let angle = self.start_time.elapsed().as_secs_f32(); // seconds
             let model_matrix = Mat4::from_rotation_y(angle);

@@ -27,6 +27,11 @@ pub fn get_projection_matrix(lens: &Lens) -> Mat4 {
 }
 
 impl Camera {
+    pub fn move_by(&mut self, delta: Vec3) {
+        self.position += delta;
+        self.center += delta;
+    }
+
     pub fn new() -> Camera {
         Self {
             position: Vec3::new(0.0, 0.0, 3.0),

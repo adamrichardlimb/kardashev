@@ -2,6 +2,8 @@ mod input;
 mod rendering;
 
 use gl;
+use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
+use rendering::camera::Camera;
 
 pub fn main() -> Result<(), String> {
 
@@ -27,18 +29,25 @@ pub fn main() -> Result<(), String> {
 
     //This is our input and the events it fires
     let event_pump = sdl_context.event_pump().unwrap();
-    let event_subsystem = sdl_context.event().unwrap();
 
-    let mut input_handler = input::init(event_pump, event_subsystem);
+    let mut input_handler = InputDispatcher::new(event_pump);
+
+    let mut camera = Camera::new();
+    let controller = CameraController::new();
+
+    input_handler.set_controller(controller);
 
     'main: loop {
-        let events = input_handler.poll_events();
+        let actions = input_handler.poll_events().expect("Error occurred in the input handling loop.");
         
-        if events.is_err() {
-            break 'main;
+        for action in actions {
+            match action {
+                InputAction::Quit => break 'main,
+                InputAction::MoveCamera(delta) => camera.move_by(delta),
+            }
         }
 
-        renderer.render();
+        renderer.render(&camera);
     }
 
     Ok(())

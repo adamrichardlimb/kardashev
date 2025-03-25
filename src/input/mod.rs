@@ -1,51 +1,59 @@
-use sdl2::{event::Event, keyboard::Keycode, EventPump, EventSubsystem};
-use std::collections::HashMap;
+pub mod controllers;
 
-pub fn init(event_pump: EventPump, event_subsystem: EventSubsystem) -> InputHandler {
-    let keymap = HashMap::new();
-    let mut input_handler = InputHandler {
-        event_pump,
-        keymap
-    };
-    
-    let event_sender = event_subsystem.event_sender();
+use glam::Vec3;
+use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
-    input_handler.bind(Keycode::SPACE, move || {let _ = event_sender.push_event(Event::Quit { timestamp: 12345 });} );
-    input_handler.bind(Keycode::TAB, || println!("Hello, world!"));
-
-    return input_handler;
-}
-
-pub struct InputHandler {
+//TODO - Create an input buffer for the InputDispatcher
+//Maybe input buffers should sit in the controllers too?
+pub struct InputDispatcher<'a> {
     event_pump: EventPump,
-    keymap: Keymap
+    active_controller: Option<Box<dyn Controller + 'a>>
 }
 
-pub type Keymap = HashMap<Keycode, Box<dyn FnMut()>>;
+//TODO - this is temp code for emitting actions to stop CameraController possessing a mutable
+//borrow indefinitely
+pub enum InputAction {
+    MoveCamera(Vec3),
+    Quit
+}
 
-impl InputHandler {
-    pub fn bind<F>(&mut self, key: Keycode, action: F) where F: FnMut() + 'static, {
-        self.keymap.insert(key, Box::new(action));
+pub trait Controller {
+    fn handle_key(&mut self, key: Keycode) -> Option<InputAction>;
+}
+
+impl<'a> InputDispatcher<'a> {
+    pub fn new(event_pump: EventPump) -> InputDispatcher<'a> {
+        let input_handler = InputDispatcher {
+            event_pump,
+            active_controller: None
+        };
+        
+
+        return input_handler;
     }
 
-    fn handle_key(&mut self, key: Keycode) {
-        if let Some(action) = self.keymap.get_mut(&key) {
-            action();
-        }
+    pub fn set_controller<C: Controller + 'a>(&mut self, controller: C) {
+       self.active_controller = Some(Box::new(controller)); 
     }
 
-    pub fn poll_events(&mut self) -> Result<(), String> {
+    pub fn poll_events(&mut self) -> Result<Vec<InputAction>, String> {
+        let mut actions = Vec::new();
+
         for event in self.event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } => return Err("User wishes to close program".to_string()),
                 Event::KeyDown { keycode: Some(k), .. } => {
-                        self.handle_key(k);
-                        return Ok(());
+                        if let Some(action) = self.active_controller
+                            .as_mut()
+                            .expect("No active controller!")
+                            .handle_key(k)
+                        {
+                            actions.push(action);
+                        }
                 },
-                _ => return Ok(())
+                _ => {}
             }
         }
 
-        return Ok(());
+        return Ok(actions);
     }
 }
