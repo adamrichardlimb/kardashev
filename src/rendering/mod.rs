@@ -1,8 +1,9 @@
 mod shaders;
 mod camera;
 
+use camera::{Camera, Lens};
 use gl;
-use glam::{Mat4, Vec3};
+use glam::Mat4;
 use sdl2::video::Window;
 use shaders::Shader;
 
@@ -22,15 +23,22 @@ pub fn init(window: &mut Window) -> Renderer {
         },
     };
 
+    let camera = Camera::new();
+    let lens = Lens::new();
+
     return Renderer {
         window,
-        shader
+        shader,
+        active_camera: camera,
+        active_lens: lens
     }
 }
 
 pub struct Renderer<'a> {
     window: &'a mut Window,
     shader: Shader,
+    active_camera: Camera,
+    active_lens: Lens
 }
 
 impl Renderer<'_> {
@@ -39,25 +47,21 @@ impl Renderer<'_> {
             
             gl::Enable(gl::DEPTH_TEST);
 
-            let ASPECT_RATIO: f32 = 800 as f32 / 600 as f32;
-            let FOV: f32 = std::f32::consts::FRAC_PI_3;
-            let NEAR: f32 = 0.1;
-            let FAR: f32 = 100.0;
+            let projection_matrix: Mat4 = camera::get_projection_matrix(&self.active_lens);
+            
+            let view_matrix: Mat4 = camera::get_view_matrix(&self.active_camera);
 
-            let PROJECTION_MATRIX: Mat4 = Mat4::perspective_rh_gl(FOV, ASPECT_RATIO, NEAR, FAR);
-            let VIEW_MATRIX: Mat4 = Mat4::look_at_rh(Vec3::new(0.0,0.0,1.0), Vec3::ZERO, Vec3::Y);
-
-            let MODEL_MATRIX: Mat4 = Mat4::IDENTITY;
+            let model_matrix: Mat4 = Mat4::IDENTITY;
 
             //Tell OpenGL to use our matrices
             let projection_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"projection\0".as_ptr() as *const i8);
-            gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, PROJECTION_MATRIX.as_ref().as_ptr());
+            gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection_matrix.as_ref().as_ptr());
 
             let view_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"view\0".as_ptr() as *const i8);
-            gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, VIEW_MATRIX.as_ref().as_ptr());
+            gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view_matrix.as_ref().as_ptr());
 
             let model_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"model\0".as_ptr() as *const i8);
-            gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, MODEL_MATRIX.as_ref().as_ptr());
+            gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model_matrix.as_ref().as_ptr());
 
             gl::ClearColor(0.5, 0.5, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

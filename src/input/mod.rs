@@ -10,7 +10,7 @@ pub fn init(event_pump: EventPump, event_subsystem: EventSubsystem) -> InputHand
     
     let event_sender = event_subsystem.event_sender();
 
-    input_handler.bind(Keycode::SPACE, move || {event_sender.push_event(Event::Quit { timestamp: 12345 });} );
+    input_handler.bind(Keycode::SPACE, move || {let _ = event_sender.push_event(Event::Quit { timestamp: 12345 });} );
     input_handler.bind(Keycode::TAB, || println!("Hello, world!"));
 
     return input_handler;
