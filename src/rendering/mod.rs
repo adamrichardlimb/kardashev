@@ -6,10 +6,27 @@ use gl;
 use glam::Mat4;
 use sdl2::video::Window;
 use shaders::Shader;
+use std::time::Instant;
 
-type Vertex = [f32; 3];
-const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0],[0.5, -0.5, 0.0],[0.0, 0.5, 0.0]];
+const CUBE_VERTICES: &[f32] = &[
+    -0.5, -0.5, -0.5, //Back, bottom left
+     0.5, -0.5, -0.5, //Back, bottom right
+     0.5,  0.5, -0.5, //Back, top right
+    -0.5,  0.5, -0.5, //Back, top left
+    -0.5, -0.5,  0.5, //Front, bottom left
+     0.5, -0.5,  0.5, //Front, bottom right
+     0.5,  0.5,  0.5, //Front, top right
+    -0.5,  0.5,  0.5  //Front, top left
+];
 
+const CUBE_INDICES: &[u32] = &[
+    0,1,2,2,3,0, //Back
+    4,5,6,6,7,4, //Front
+    4,0,3,3,7,4, //Left
+    1,5,6,6,2,1, //Right
+    3,2,6,6,7,3, //Top
+    0,1,5,5,4,0, //Bottom
+];
 
 pub fn init(window: &mut Window) -> Renderer {
     //Create our shaders 
@@ -25,12 +42,14 @@ pub fn init(window: &mut Window) -> Renderer {
 
     let camera = Camera::new();
     let lens = Lens::new();
+    let start_time = Instant::now();
 
     return Renderer {
         window,
         shader,
         active_camera: camera,
-        active_lens: lens
+        active_lens: lens,
+        start_time
     }
 }
 
@@ -38,7 +57,8 @@ pub struct Renderer<'a> {
     window: &'a mut Window,
     shader: Shader,
     active_camera: Camera,
-    active_lens: Lens
+    active_lens: Lens,
+    start_time: Instant
 }
 
 impl Renderer<'_> {
@@ -51,7 +71,8 @@ impl Renderer<'_> {
             
             let view_matrix: Mat4 = camera::get_view_matrix(&self.active_camera);
 
-            let model_matrix: Mat4 = Mat4::IDENTITY;
+            let angle = self.start_time.elapsed().as_secs_f32(); // seconds
+            let model_matrix = Mat4::from_rotation_y(angle);
 
             //Tell OpenGL to use our matrices
             let projection_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"projection\0".as_ptr() as *const i8);
@@ -83,8 +104,18 @@ impl Renderer<'_> {
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                size_of_val(&VERTICES) as isize,
-                VERTICES.as_ptr().cast(),
+                (CUBE_VERTICES.len() * std::mem::size_of::<f32>()) as isize,
+                CUBE_VERTICES.as_ptr().cast(),
+                gl::STATIC_DRAW
+            );
+
+            let mut ebo = 0;
+            gl::GenBuffers(1, &mut ebo);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(
+                gl::ELEMENT_ARRAY_BUFFER,
+                (CUBE_INDICES.len() * std::mem::size_of::<u32>()) as isize,
+                CUBE_INDICES.as_ptr().cast(),
                 gl::STATIC_DRAW
             );
 
@@ -94,12 +125,12 @@ impl Renderer<'_> {
                 3,
                 gl::FLOAT,
                 gl::FALSE,
-                size_of::<Vertex>().try_into().unwrap(),
+                3 * 4,
                 0 as *const _
             );
             gl::EnableVertexAttribArray(0); 
 
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, std::ptr::null());
         }
 
         // Show it on the screen
