@@ -26,8 +26,8 @@ pub fn main() -> Result<(), String> {
     let renderer = rendering::init(&mut window);
 
     //This is our input and the events it fires
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut event_subsystem = sdl_context.event().unwrap();
+    let event_pump = sdl_context.event_pump().unwrap();
+    let event_subsystem = sdl_context.event().unwrap();
 
     let mut input_handler = input::init(event_pump, event_subsystem);
 

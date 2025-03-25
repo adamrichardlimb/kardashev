@@ -10,9 +10,9 @@ use std::fs::read_to_string;
 //which abstracts away all the OpenGL calls
 
 pub struct Shader {
-    shader_program_id: GLuint,
-    vertex_shader_id: GLuint,
-    fragment_shader_id: GLuint
+    pub shader_program_id: GLuint,
+    pub vertex_shader_id: GLuint,
+    pub fragment_shader_id: GLuint
 }
 
 fn initialise_shader<T: AsRef<Path>>(shader_path: T, shader_type: GLenum) -> Result<GLuint, String> {

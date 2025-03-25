@@ -1,4 +1,4 @@
-use sdl2::{event::{Event, EventSender}, keyboard::Keycode, EventPump, EventSubsystem};
+use sdl2::{event::Event, keyboard::Keycode, EventPump, EventSubsystem};
 use std::collections::HashMap;
 
 pub fn init(event_pump: EventPump, event_subsystem: EventSubsystem) -> InputHandler {
