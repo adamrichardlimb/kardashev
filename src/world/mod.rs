@@ -13,16 +13,12 @@ pub struct World {
 
 impl World {
     pub fn new() -> Self {
-        let mut chunks = ChunkMap::new();
+        let mut chunks = ChunkMap::new(); 
+        let chunk = Chunk::new_flat();
+        let chunk2 = Chunk::new_flat();
 
-        for chunk_x in -1..=1 {
-            for chunk_z in -1..=1 {
-                let chunk_pos = (chunk_x, 0, chunk_z);
-                let chunk = Chunk::new_flat();
-                
-                chunks.insert(chunk_pos, chunk);
-            }
-        }
+        chunks.insert((0,0,0), chunk);
+        chunks.insert((1,0,0), chunk2);
 
         Self {
             chunks

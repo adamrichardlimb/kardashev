@@ -1,5 +1,6 @@
 pub mod controllers;
 
+use std::collections::HashSet;
 use glam::Vec3;
 use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
@@ -7,7 +8,8 @@ use sdl2::{event::Event, keyboard::Keycode, EventPump};
 //Maybe input buffers should sit in the controllers too?
 pub struct InputDispatcher<'a> {
     event_pump: EventPump,
-    active_controller: Option<Box<dyn Controller + 'a>>
+    active_controller: Option<Box<dyn Controller + 'a>>,
+    keys_held: HashSet<Keycode>
 }
 
 //TODO - this is temp code for emitting actions to stop CameraController possessing a mutable
@@ -18,14 +20,15 @@ pub enum InputAction {
 }
 
 pub trait Controller {
-    fn handle_key(&mut self, key: Keycode) -> Option<InputAction>;
+    fn map_keys(&mut self, keys_held: HashSet<Keycode>) -> Vec<InputAction>;
 }
 
 impl<'a> InputDispatcher<'a> {
     pub fn new(event_pump: EventPump) -> InputDispatcher<'a> {
         let input_handler = InputDispatcher {
             event_pump,
-            active_controller: None
+            active_controller: None,
+            keys_held: HashSet::new()
         };
         
 
@@ -37,23 +40,23 @@ impl<'a> InputDispatcher<'a> {
     }
 
     pub fn poll_events(&mut self) -> Result<Vec<InputAction>, String> {
-        let mut actions = Vec::new();
-
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::KeyDown { keycode: Some(k), .. } => {
-                        if let Some(action) = self.active_controller
-                            .as_mut()
-                            .expect("No active controller!")
-                            .handle_key(k)
-                        {
-                            actions.push(action);
-                        }
+                    self.keys_held.insert(k);
                 },
+                Event::KeyUp { keycode: Some(k), .. } => {
+                    self.keys_held.remove(&k);
+                }
                 _ => {}
             }
         }
 
-        return Ok(actions);
+        return Ok(self.active_controller
+                    .as_mut()
+                    .expect("No active controller!")
+                    .map_keys(self.keys_held.clone())
+        );
+        
     }
 }
