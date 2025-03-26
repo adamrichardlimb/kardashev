@@ -1,4 +1,7 @@
+mod chunk;
+
 use crate::rendering::mesh::Mesh;
+use crate::world::chunk::Chunk;
 
 const CUBE_VERTICES: &[f32] = &[
     -0.5, -0.5, -0.5, //Back, bottom left
@@ -26,8 +29,9 @@ pub struct World {
 
 impl World {
     pub fn new() -> Self {
+        let chunk = Chunk::new_flat();
         let mut meshes = Vec::new();
-        meshes.push(Mesh::from_vertices_and_indices(CUBE_VERTICES, CUBE_INDICES));
+        meshes.push(chunk.generate_mesh());
         Self {
             meshes
         }

@@ -2,11 +2,10 @@ mod input;
 mod rendering;
 mod world;
 
-use std::time::Instant;
-use glam::Mat4;
+use glam::{Mat4, Vec3};
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
-use rendering::{camera::Camera, mesh};
+use rendering::camera::Camera;
 use world::World;
 
 pub fn main() -> Result<(), String> {
@@ -44,8 +43,9 @@ pub fn main() -> Result<(), String> {
     
     input_handler.set_controller(controller);
 
-    for mesh in &world.meshes {
-        renderer.queue_draw(mesh, Mat4::IDENTITY);
+    for (index, mesh) in world.meshes.iter().enumerate() {
+        let offset = Vec3::new(index as f32 * 2.0, 0.0, 0.0);
+        renderer.queue_draw(mesh, Mat4::from_translation(offset));
     }
 
     'main: loop {

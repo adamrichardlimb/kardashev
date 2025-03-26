@@ -8,7 +8,6 @@ use glam::Mat4;
 use mesh::Mesh;
 use sdl2::video::Window;
 use shaders::Shader;
-use std::time::Instant;
 
 pub fn init(window: &mut Window) -> Renderer {
     //Create our shaders 
