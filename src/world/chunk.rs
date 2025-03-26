@@ -23,10 +23,13 @@ const CUBE_INDICES: &[u32] = &[
     0,1,5,5,4,0, //Bottom
 ];
 
+pub type ChunkBlockData = [[[u8; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]; 
+
 pub struct Chunk {
     //Give me an array of the size of the chunk (x) containing an array of the size of the chunk (y)
     //containing an array the size of the chunk (z) of u8s (block IDs)
-    blocks: [[[u8; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
+    blocks: ChunkBlockData,
+    pub mesh: Mesh
 }
 
 impl Chunk {
@@ -41,29 +44,38 @@ impl Chunk {
             }
         }
 
-        Self {blocks}
-    }
+        let mesh = generate_mesh(blocks);
 
-    pub fn generate_mesh(&self) -> Mesh {
-        let mut vertices = Vec::new();
-        let mut indices = Vec::new();
-
-        for ((x,y,z), block) in self.into_iter() {
-           //If air then just continue
-            if block == 0 {
-                continue;
-            }
-
-            //Otherwise lets make a mesh for the chunk
-            //Right now this is just a terrible implementation as Proof of Concept
-            let base_index = (vertices.len() / 3) as u32;
-            let cube = unit_cube_vertices((x, y, z));
-            vertices.extend_from_slice(&cube);
-            indices.extend_from_slice(&unit_cube_indices(base_index));
+        Self {
+            blocks,
+            mesh
         }
+    } 
+}
 
-        Mesh::from_vertices_and_indices(&vertices, &indices)
+fn generate_mesh(blocks: ChunkBlockData) -> Mesh {
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+
+    for x in 0..CHUNK_SIZE {
+        for y in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+               //If air then just continue
+                if blocks[x][y][z] == 0 {
+                    continue;
+                }
+
+                //Otherwise lets make a mesh for the chunk
+                //Right now this is just a terrible implementation as Proof of Concept
+                let base_index = (vertices.len() / 3) as u32;
+                let cube = unit_cube_vertices((x, y, z));
+                vertices.extend_from_slice(&cube);
+                indices.extend_from_slice(&unit_cube_indices(base_index));
+            }
+        }
     }
+
+    Mesh::from_vertices_and_indices(&vertices, &indices)
 }
 
 fn unit_cube_vertices(offset: (usize, usize, usize)) -> [f32; 3*8] {

@@ -2,11 +2,12 @@ mod input;
 mod rendering;
 mod world;
 
-use glam::{Mat4, Vec3};
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
 use rendering::camera::Camera;
 use world::World;
+use glam::{ Mat4, Vec3 };
+use world::chunk::{CHUNK_SIZE, VOXEL_SIZE};
 
 pub fn main() -> Result<(), String> {
 
@@ -43,13 +44,22 @@ pub fn main() -> Result<(), String> {
     
     input_handler.set_controller(controller);
 
-    for (index, mesh) in world.meshes.iter().enumerate() {
-        let offset = Vec3::new(index as f32 * 2.0, 0.0, 0.0);
-        renderer.queue_draw(mesh, Mat4::from_translation(offset));
-    }
-
     'main: loop {
         let actions = input_handler.poll_events().expect("Error occurred in the input handling loop.");
+
+        //Queue the world to render
+        for (pos, chunk) in world.chunks.iter() {
+            renderer.queue_draw(
+                &chunk.mesh,
+                Mat4::from_translation(
+                    Vec3::new(
+                        pos.0 as f32,
+                        pos.1 as f32,
+                        pos.2 as f32
+                    ) * CHUNK_SIZE as f32 * VOXEL_SIZE
+                )
+            );
+        }
 
         for action in actions {
             match action {

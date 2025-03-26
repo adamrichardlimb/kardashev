@@ -49,7 +49,7 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
         println!("Render queue pushed, length {}", self.render_queue.len());
     }
 
-    pub fn render(&self, camera: &Camera) {
+    pub fn render(&mut self, camera: &Camera) {
         unsafe {
             gl::ClearColor(0.5, 0.5, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -66,7 +66,7 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
             let view_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"view\0".as_ptr() as *const i8);
             gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view_matrix.as_ref().as_ptr());
 
-            for cmd in &self.render_queue {            
+            for cmd in self.render_queue.drain(..) {            
                 let model_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"model\0".as_ptr() as *const i8);
                 gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, cmd.model_matrix.as_ref().as_ptr());
                 cmd.mesh.draw();
