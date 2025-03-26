@@ -38,7 +38,7 @@ pub struct RenderCommand<'frame> {
 
 pub struct Renderer<'a, 'frame> {
     window: &'a mut Window,
-    shader: Shader,
+    pub shader: Shader,
     active_lens: Lens,
     render_queue: Vec<RenderCommand<'frame>>,
 }
@@ -54,6 +54,10 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
             gl::ClearColor(0.5, 0.5, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             gl::Enable(gl::DEPTH_TEST);
+            
+            //Set colour of our vertices
+            let color_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"color\0".as_ptr() as *const i8);
+            gl::Uniform3f(color_loc, 0.5, 0.0, 0.5);
 
             let projection_matrix: Mat4 = camera::get_projection_matrix(&self.active_lens);
             
@@ -70,6 +74,15 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
                 let model_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"model\0".as_ptr() as *const i8);
                 gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, cmd.model_matrix.as_ref().as_ptr());
                 cmd.mesh.draw();
+
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                gl::LineWidth(1.0);
+                gl::Disable(gl::DEPTH_TEST);
+                // optional: draw outlines over filled faces
+                gl::Uniform3f(color_loc, 1.0, 0.0, 1.0);
+                cmd.mesh.draw();
+                gl::Enable(gl::DEPTH_TEST);
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
             }
         }
 
