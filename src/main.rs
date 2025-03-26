@@ -1,9 +1,13 @@
 mod input;
 mod rendering;
+mod world;
 
+use std::time::Instant;
+use glam::Mat4;
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
-use rendering::camera::Camera;
+use rendering::{camera::Camera, mesh};
+use world::World;
 
 pub fn main() -> Result<(), String> {
 
@@ -24,8 +28,11 @@ pub fn main() -> Result<(), String> {
     //Point our OpenGL calls to SDL2 so they can be fed to the driver
     let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
+    //Create the basic world
+    let world = World::new(); 
+
     //This is our renderer
-    let renderer = rendering::init(&mut window);
+    let mut renderer = rendering::init(&mut window);
 
     //This is our input and the events it fires
     let event_pump = sdl_context.event_pump().unwrap();
@@ -34,12 +41,16 @@ pub fn main() -> Result<(), String> {
 
     let mut camera = Camera::new();
     let controller = CameraController::new();
-
+    
     input_handler.set_controller(controller);
+
+    for mesh in &world.meshes {
+        renderer.queue_draw(mesh, Mat4::IDENTITY);
+    }
 
     'main: loop {
         let actions = input_handler.poll_events().expect("Error occurred in the input handling loop.");
-        
+
         for action in actions {
             match action {
                 InputAction::Quit => break 'main,
