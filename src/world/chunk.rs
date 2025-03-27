@@ -1,3 +1,5 @@
+use noise::{Perlin, NoiseFn};
+
 use crate::world::Mesh;
 
 pub const VOXEL_SIZE: f32 = 0.1;
@@ -33,6 +35,35 @@ pub struct Chunk {
 }
 
 impl Chunk {
+    pub fn from_perlin_noise((chunk_x, _chunk_y, chunk_z): (i32, i32, i32), perlin: &Perlin) -> Self {
+        let mut blocks = [[[0u8; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
+
+        let world_x = chunk_x * CHUNK_SIZE as i32;
+        let world_z = chunk_z * CHUNK_SIZE as i32;
+
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                let nx = (world_x + x as i32) as f64 * 0.05;
+                let nz = (world_z + z as i32) as f64 * 0.04;
+
+                let height = ((perlin.get([nx, nz]) + 1.0) * 0.5 * CHUNK_SIZE as f64 * 0.5) as usize;
+
+                for y in 0..CHUNK_SIZE {
+                    if y <= height {
+                        blocks[x][y][z] = 1;
+                    }
+                }
+            }
+        }
+
+        let mesh = generate_mesh(blocks);
+
+        Self {
+            blocks,
+            mesh
+        }
+    }
+
     pub fn new_flat() -> Self {
         let mut blocks = [[[0u8; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
 
