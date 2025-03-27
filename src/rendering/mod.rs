@@ -46,7 +46,7 @@ pub struct Renderer<'a, 'frame> {
 impl<'a, 'frame> Renderer<'a, 'frame> {
     pub fn queue_draw(&mut self, mesh: &'frame Mesh, model_matrix: Mat4) {
         self.render_queue.push(RenderCommand {mesh, model_matrix} );
-        println!("Render queue pushed, length {}", self.render_queue.len());
+        //println!("Render queue pushed, length {}", self.render_queue.len());
     }
 
     pub fn render(&mut self, camera: &Camera) {

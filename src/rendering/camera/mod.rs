@@ -2,7 +2,9 @@ use glam::{Mat4, Vec3};
 
 pub struct Camera {
     position: Vec3,
-    center: Vec3,
+    yaw: f32,
+    pitch: f32,
+    forward: Vec3,
     up: Vec3
 }
 
@@ -14,7 +16,7 @@ pub struct Lens {
 }
 
 pub fn get_view_matrix(camera: &Camera) -> Mat4 {
-    Mat4::look_at_rh(camera.position, camera.center, camera.up)
+    Mat4::look_at_rh(camera.position, camera.position + camera.forward, camera.up)
 }
 
 pub fn get_projection_matrix(lens: &Lens) -> Mat4 {
@@ -27,15 +29,52 @@ pub fn get_projection_matrix(lens: &Lens) -> Mat4 {
 }
 
 impl Camera {
-    pub fn move_by(&mut self, delta: Vec3) {
-        self.position += delta;
-        self.center += delta;
+    pub fn move_by(&mut self, local_delta: Vec3) {
+        let right = self.forward.cross(self.up).normalize();
+        let up = self.up;
+        let forward = self.forward;
+
+        let movement = 
+            right * local_delta.x +
+            up    * local_delta.y -
+            forward * local_delta.z;
+
+        self.position += movement;
     }
+ 
+
+
+    pub fn apply_look(&mut self, delta: (f32, f32)) {
+        self.yaw += delta.0;
+        self.pitch -= delta.1;
+
+        println!("Applying look of {}, {}", delta.0, delta.1);
+
+        //ChatGPT says prevent flip, I assume this is so I cannot look over my own head
+        self.pitch = self.pitch.clamp(-1.55, 1.55);
+
+        let dir = Vec3::new(
+            self.yaw.cos() * self.pitch.cos(),
+            self.pitch.sin(),
+            self.yaw.sin() * self.pitch.cos()
+        );
+
+        self.forward = dir.normalize();
+    } 
 
     pub fn new() -> Camera {
+
+        let dir = Vec3::new(
+            1.0,
+            0.0,
+            0.0
+        );
+
         Self {
             position: Vec3::new(0.0, 0.0, 3.0),
-            center: Vec3::ZERO,
+            forward: dir.normalize(),
+            yaw: 0.0,
+            pitch: 0.0,
             up: Vec3::Y
         }
     }

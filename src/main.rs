@@ -31,6 +31,14 @@ pub fn main() -> Result<(), String> {
     //Create the basic world
     let world = World::new(); 
 
+    //TODO
+    //Move this into the camera controller init and some kind of rendering utils
+    //Weirdly you need both set_mouse_grab and capture for this to work
+    window.set_mouse_grab(true);
+    sdl_context.mouse().set_relative_mouse_mode(true);
+    sdl_context.mouse().capture(true);
+    sdl_context.mouse().show_cursor(false);
+
     //This is our renderer
     let mut renderer = rendering::init(&mut window);
 
@@ -65,6 +73,7 @@ pub fn main() -> Result<(), String> {
             match action {
                 InputAction::Quit => break 'main,
                 InputAction::MoveCamera(delta) => camera.move_by(delta),
+                InputAction::LookDelta(relative_direction) => camera.apply_look(relative_direction),
             }
         }
 

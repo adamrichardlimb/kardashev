@@ -9,18 +9,20 @@ use sdl2::{event::Event, keyboard::Keycode, EventPump};
 pub struct InputDispatcher<'a> {
     event_pump: EventPump,
     active_controller: Option<Box<dyn Controller + 'a>>,
-    keys_held: HashSet<Keycode>
+    keys_held: HashSet<Keycode>,
+    mouse_motion: Option<(i32, i32)>
 }
 
 //TODO - this is temp code for emitting actions to stop CameraController possessing a mutable
 //borrow indefinitely
 pub enum InputAction {
     MoveCamera(Vec3),
+    LookDelta((f32, f32)),
     Quit
 }
 
 pub trait Controller {
-    fn map_keys(&mut self, keys_held: HashSet<Keycode>) -> Vec<InputAction>;
+    fn map_keys(&mut self, keys_held: HashSet<Keycode>, mouse_motion: Option<(i32, i32)>) -> Vec<InputAction>;
 }
 
 impl<'a> InputDispatcher<'a> {
@@ -28,7 +30,8 @@ impl<'a> InputDispatcher<'a> {
         let input_handler = InputDispatcher {
             event_pump,
             active_controller: None,
-            keys_held: HashSet::new()
+            keys_held: HashSet::new(),
+            mouse_motion: None
         };
         
 
@@ -40,6 +43,8 @@ impl<'a> InputDispatcher<'a> {
     }
 
     pub fn poll_events(&mut self) -> Result<Vec<InputAction>, String> {
+        self.mouse_motion = None;
+
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::KeyDown { keycode: Some(k), .. } => {
@@ -47,15 +52,18 @@ impl<'a> InputDispatcher<'a> {
                 },
                 Event::KeyUp { keycode: Some(k), .. } => {
                     self.keys_held.remove(&k);
+                },
+                Event::MouseMotion {xrel, yrel, ..} => {
+                    self.mouse_motion = Some((xrel, yrel));
                 }
-                _ => {}
+                _ => {self.mouse_motion = None}
             }
         }
 
         return Ok(self.active_controller
                     .as_mut()
                     .expect("No active controller!")
-                    .map_keys(self.keys_held.clone())
+                    .map_keys(self.keys_held.clone(), self.mouse_motion)
         );
         
     }
