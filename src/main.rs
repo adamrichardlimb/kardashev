@@ -65,7 +65,7 @@ pub fn main() -> Result<(), String> {
         }
  
         
-        let text = format!("Frame: {:.2} ms | Chunks: {} | Draws: {} | Cam: ({:.1}, {:.1}, {:.1}) Yaw: {:.1} Pitch: {:.1}",
+        let text = format!("Frame: {:.2} ms|Chunks: {}|Draws: {}|Cam: ({:.1}, {:.1}, {:.1}) Yaw: {:.1} Pitch: {:.1}",
             debugger.frame_time_ms,
             debugger.chunk_count,
             debugger.draw_calls,

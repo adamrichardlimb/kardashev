@@ -36,6 +36,6 @@ impl DebugOverlay {
         self.camera_yaw = camera.yaw();
     }
 
-    
+  
 }
 
