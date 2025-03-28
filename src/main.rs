@@ -6,10 +6,12 @@ mod debug;
 use debug::DebugOverlay;
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
-use rendering::camera::Camera;
+use rendering::{camera::Camera, RenderCommand};
 use world::World;
 use glam::{ Mat4, Vec3 };
 use world::chunk::{CHUNK_SIZE, VOXEL_SIZE};
+use sdl2::pixels::Color;
+use rendering::text::{create_text_texture, TextQuad, TextTexture, new_text_quad};
 
 pub fn main() -> Result<(), String> {
 
@@ -45,6 +47,9 @@ pub fn main() -> Result<(), String> {
 
     let font = sdl2_ttf.load_font("assets/fonts/FiraCode-SemiBold.tff", 16).expect("Failed to import font.");
 
+    //Okay time for some main loop badness
+    let text_quad = new_text_quad();
+    let text_texture = create_text_texture(&font, "Hello, world!", Color {r: 0, g: 0, b: 0, a: 1}); 
 
     //This is our renderer
     let mut renderer = rendering::init(&mut window, font);
@@ -69,16 +74,19 @@ pub fn main() -> Result<(), String> {
         //Queue the world to render
         for (pos, chunk) in world.chunks.iter() {
             renderer.queue_draw(
-                &chunk.mesh,
-                Mat4::from_translation(
+                RenderCommand::RenderMesh { mesh: &chunk.mesh,
+                model_matrix: Mat4::from_translation(
                     Vec3::new(
                         pos.0 as f32,
                         pos.1 as f32,
                         pos.2 as f32
                     ) * CHUNK_SIZE as f32 * VOXEL_SIZE
-                )
+                ) }
             );
         }
+
+        
+        renderer.queue_draw(RenderCommand::RenderText { surface: &text_quad, texture_id: text_texture.texture_id });
 
         for action in actions {
             match action {
