@@ -50,8 +50,8 @@ pub enum RenderCommand<'frame> {
         model_matrix: Mat4
     },
     RenderText {
-        surface: &'frame TextQuad,
-        texture: &'frame TextTexture
+        surface: TextQuad,
+        texture: TextTexture
     }
 }
 
@@ -68,12 +68,13 @@ pub struct Renderer<'sdl2, 'frame> {
     window: &'sdl2 mut Window,
     pub shader: Shader,
     pub text_shader: Shader,
-    font: Font<'sdl2, 'sdl2>,
+    pub font: Font<'sdl2, 'sdl2>,
     active_lens: Lens,
     render_queue: Vec<RenderCommand<'frame>>,
 }
 
 impl<'a, 'frame> Renderer<'a, 'frame> {
+
     pub fn queue_draw(&mut self, command: RenderCommand<'frame>) {
         self.render_queue.push(command);
     }
