@@ -1,7 +1,9 @@
 mod input;
 mod rendering;
 mod world;
+mod debug;
 
+use debug::DebugOverlay;
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
 use rendering::camera::Camera;
@@ -39,8 +41,13 @@ pub fn main() -> Result<(), String> {
     sdl_context.mouse().capture(true);
     sdl_context.mouse().show_cursor(false);
 
+    let sdl2_ttf = sdl2::ttf::init().expect("Failed to initialise the sdl2 ttf context!");
+
+    let font = sdl2_ttf.load_font("assets/fonts/FiraCode-SemiBold.tff", 16).expect("Failed to import font.");
+
+
     //This is our renderer
-    let mut renderer = rendering::init(&mut window);
+    let mut renderer = rendering::init(&mut window, font);
 
     //This is our input and the events it fires
     let event_pump = sdl_context.event_pump().unwrap();
@@ -52,7 +59,11 @@ pub fn main() -> Result<(), String> {
     
     input_handler.set_controller(controller);
 
+    let mut debugger = DebugOverlay::new();
+
     'main: loop {
+        let frame_start = std::time::Instant::now();
+
         let actions = input_handler.poll_events().expect("Error occurred in the input handling loop.");
 
         //Queue the world to render
@@ -77,6 +88,9 @@ pub fn main() -> Result<(), String> {
             }
         }
 
+        let frame_duration = frame_start.elapsed();
+        debugger.update(frame_duration, world.chunks.len(), &camera);
+        debugger.print();
         renderer.render(&camera);
     }
 

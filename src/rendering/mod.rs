@@ -1,17 +1,19 @@
 mod shaders;
 pub mod camera;
 pub mod mesh;
+pub mod text;
 
 use camera::{Camera, Lens};
 use gl;
 use glam::Mat4;
 use mesh::Mesh;
-use sdl2::video::Window;
+use sdl2::{ttf::Font, video::Window};
 use shaders::Shader;
 
-pub fn init(window: &mut Window) -> Renderer {
+pub fn init<'sdl2>(window: &'sdl2 mut Window, font: Font<'sdl2, 'sdl2>) -> Renderer<'sdl2, 'sdl2> {
     //Create our shaders 
-    let shader_result = shaders::create_shader("src/rendering/shaders/vertex_shader.txt", "src/rendering/shaders/fragment_shader.txt");
+    //TODO - MAKE THIS SHIT NOT RELATIVE AND BUNDLE WITH RELEASE
+    let shader_result = shaders::create_shader("src/rendering/shaders/default.vert", "src/rendering/shaders/default.frag");
 
     let shader = match shader_result {
         Ok(shader) => shader,
@@ -27,18 +29,21 @@ pub fn init(window: &mut Window) -> Renderer {
         window,
         shader,
         active_lens: lens,
+        font,
         render_queue: Vec::new()
     }
 }
+
 
 pub struct RenderCommand<'frame> {
     pub mesh: &'frame Mesh,
     pub model_matrix: Mat4
 }
 
-pub struct Renderer<'a, 'frame> {
-    window: &'a mut Window,
+pub struct Renderer<'sdl2, 'frame> {
+    window: &'sdl2 mut Window,
     pub shader: Shader,
+    font: Font<'sdl2, 'sdl2>,
     active_lens: Lens,
     render_queue: Vec<RenderCommand<'frame>>,
 }
@@ -46,7 +51,6 @@ pub struct Renderer<'a, 'frame> {
 impl<'a, 'frame> Renderer<'a, 'frame> {
     pub fn queue_draw(&mut self, mesh: &'frame Mesh, model_matrix: Mat4) {
         self.render_queue.push(RenderCommand {mesh, model_matrix} );
-        //println!("Render queue pushed, length {}", self.render_queue.len());
     }
 
     pub fn render(&mut self, camera: &Camera) {

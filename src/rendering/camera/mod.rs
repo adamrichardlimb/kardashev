@@ -78,6 +78,18 @@ impl Camera {
             up: Vec3::Y
         }
     }
+
+    pub fn position(&self) -> Vec3 {
+        self.position
+    }
+
+    pub fn yaw(&self) -> f32 {
+        self.yaw
+    }
+
+    pub fn pitch(&self) -> f32 {
+        self.pitch
+    }
 }
 
 impl Lens {
