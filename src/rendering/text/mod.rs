@@ -82,7 +82,7 @@ pub struct TextTexture {
 }
 
 pub fn create_text_texture(font: &Font, text: &str, color: Color) -> TextTexture {
-    let surface = font.render(text).blended(color).unwrap();
+    let surface = font.render(text).blended(color).unwrap().convert_format(sdl2::pixels::PixelFormatEnum::RGBA32).unwrap();
     let (width, height) = (surface.width(), surface.height());
     let pixels = surface.without_lock().unwrap();
 
@@ -98,7 +98,7 @@ pub fn create_text_texture(font: &Font, text: &str, color: Color) -> TextTexture
             width as i32,
             height as i32,
             0,
-            gl::BGRA,
+            gl::RGBA,
             gl::UNSIGNED_BYTE,
             pixels.as_ptr() as *const _,
         );

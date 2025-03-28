@@ -51,7 +51,7 @@ pub enum RenderCommand<'frame> {
     },
     RenderText {
         surface: &'frame TextQuad,
-        texture_id: u32
+        texture: &'frame TextTexture
     }
 }
 
@@ -120,26 +120,28 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
             //Set up for rendering in 2D
             gl::Disable(gl::DEPTH_TEST);
             gl::UseProgram(self.text_shader.shader_program_id);
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
             let screen_size = [800.0, 600.0];
             let screen_size_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"screen_size\0".as_ptr() as *const i8);
             gl::Uniform2f(screen_size_loc, screen_size[0], screen_size[1]);
 
             for cmd in self.render_queue.iter() {
-                if let RenderCommand::RenderText { surface, texture_id } = cmd {
+                if let RenderCommand::RenderText { surface, texture } = cmd {
                    
-                    println!("Drawing with texture_id {}", texture_id);
+                    println!("Drawing with texture_id {}", texture.texture_id);
 
                     // Set screen_pos and scale
                     let screen_pos_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"screen_pos\0".as_ptr() as *const i8);
                     let scale_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"scale\0".as_ptr() as *const i8);
                     gl::Uniform2f(screen_pos_loc, 0.0, 0.0);
-                    gl::Uniform2f(scale_loc, 100.0, 100.0);
+                    gl::Uniform2f(scale_loc, texture.width as f32, texture.height as f32);
 
                     let sampler_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"text_texture\0".as_ptr() as *const i8);
                     gl::Uniform1i(sampler_loc, 0);
 
-                    surface.draw_with_texture(*texture_id);
+                    surface.draw_with_texture(texture.texture_id);
                 }
             }
 

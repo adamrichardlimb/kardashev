@@ -49,7 +49,7 @@ pub fn main() -> Result<(), String> {
 
     //Okay time for some main loop badness
     let text_quad = new_text_quad();
-    let text_texture = create_text_texture(&font, "Hello, world!", Color {r: 0, g: 0, b: 0, a: 1}); 
+    let text_texture = create_text_texture(&font, "Realism != Fun, Tedium != Difficult != Fun, Fun = Fun", Color {r: 255, g: 0, b: 255, a: 0}); 
 
     //This is our renderer
     let mut renderer = rendering::init(&mut window, font);
@@ -86,7 +86,7 @@ pub fn main() -> Result<(), String> {
         }
 
         
-        renderer.queue_draw(RenderCommand::RenderText { surface: &text_quad, texture_id: text_texture.texture_id });
+        renderer.queue_draw(RenderCommand::RenderText { surface: &text_quad, texture: &text_texture });
 
         for action in actions {
             match action {
