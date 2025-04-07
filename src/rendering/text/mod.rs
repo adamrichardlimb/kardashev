@@ -1,6 +1,11 @@
 use sdl2::ttf::Font;
 use sdl2::pixels::Color;
 
+pub struct Surface2D {
+    pub quad: TextQuad,
+    pub texture: TextTexture
+}
+
 pub fn new_text_quad() -> TextQuad {
     let vertices: [f32; 16] = [
         // x, y,    u, v
@@ -110,5 +115,13 @@ pub fn create_text_texture(font: &Font, text: &str, color: Color) -> TextTexture
         texture_id,
         width,
         height
+    }
+}
+
+impl Drop for TextTexture {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteTextures(1, &self.texture_id);
+        }
     }
 }

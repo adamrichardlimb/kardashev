@@ -2,16 +2,19 @@ mod shaders;
 pub mod camera;
 pub mod mesh;
 pub mod text;
+pub mod render_context;
 
+use crate::RenderContext;
+use crate::world::World;
 use text::{TextTexture, TextQuad};
 use camera::{Camera, Lens};
 use gl;
 use glam::Mat4;
 use mesh::Mesh;
-use sdl2::{surface, ttf::Font, video::Window};
+use sdl2::video::Window;
 use shaders::Shader;
 
-pub fn init<'sdl2>(window: &'sdl2 mut Window, font: Font<'sdl2, 'sdl2>) -> Renderer<'sdl2, 'sdl2> {
+pub fn init<'sdl2>(window: &'sdl2 mut Window) -> Renderer<'sdl2, 'sdl2> {
     //Create our shaders 
     //TODO - MAKE THIS SHIT NOT RELATIVE AND BUNDLE WITH RELEASE
     let shader_result = shaders::create_shader("src/rendering/shaders/default.vert", "src/rendering/shaders/default.frag");
@@ -39,7 +42,6 @@ pub fn init<'sdl2>(window: &'sdl2 mut Window, font: Font<'sdl2, 'sdl2>) -> Rende
         shader,
         text_shader,
         active_lens: lens,
-        font,
         render_queue: Vec::new()
     }
 }
@@ -68,7 +70,6 @@ pub struct Renderer<'sdl2, 'frame> {
     window: &'sdl2 mut Window,
     pub shader: Shader,
     pub text_shader: Shader,
-    pub font: Font<'sdl2, 'sdl2>,
     active_lens: Lens,
     render_queue: Vec<RenderCommand<'frame>>,
 }
@@ -79,7 +80,7 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
         self.render_queue.push(command);
     }
 
-    pub fn render(&mut self, camera: &Camera) {
+    pub fn render(&mut self, render_context: RenderContext) {
         unsafe {
             //Reset all at start of loop
             gl::ClearColor(0.5, 0.5, 1.0, 1.0);
@@ -89,7 +90,7 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
             //Start by rendering all meshes
             gl::UseProgram(self.shader.shader_program_id);
             let projection_matrix: Mat4 = camera::get_projection_matrix(&self.active_lens);
-            let view_matrix: Mat4 = camera::get_view_matrix(camera);
+            let view_matrix: Mat4 = camera::get_view_matrix(render_context.camera);
 
             //Tell OpenGL to use our matrices
             let projection_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"projection\0".as_ptr() as *const i8);
