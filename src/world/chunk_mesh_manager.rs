@@ -1,14 +1,13 @@
-use crate::events::{Event, EventQueue};
-use crate::world::{World, chunk::Chunk};
-use crate::world::ChunkPos;
+use crate::events::{Event, EventHandler};
+use crate::world::{ChunkPos, chunk::ChunkBlockData};
 use crate::rendering::mesh::Mesh;
 use crate::{VOXEL_SIZE, CHUNK_SIZE};
 use std::collections::{HashMap, HashSet};
 use glam::{Mat4, Vec3};
-use crate::world::RenderMesh;
+use crate::rendering::render_context::RenderMesh;
 
 pub struct ChunkMeshManager {
-    meshes: HashMap<ChunkPos, Mesh>,
+    meshes: HashMap<ChunkPos, RenderMesh>,
 }
 
 const CUBE_VERTICES: &[f32] = &[
@@ -38,56 +37,41 @@ impl ChunkMeshManager {
         }
     }
 
-    pub fn update(&mut self, world: &World, event_queue: &EventQueue) {
-        for event in event_queue.get_queue() {
-            match event {
-                Event::ChunkLoaded(pos) => {
-                    let chunk = &world.chunks[pos];
-                    self.meshes.insert(*pos, generate_mesh(chunk));
-                }
-                Event::ChunkUnloaded(pos) => {
-                    self.meshes.remove(pos);
-                }
-            }
-        }
-    }
-
-    pub fn get_or_create(&mut self, pos: ChunkPos, chunk: &Chunk) -> &Mesh {
-        self.meshes.entry(pos).or_insert_with(|| generate_mesh(chunk))
+    pub fn get_or_create(&mut self, pos: ChunkPos, blocks: &ChunkBlockData) {
+        self.meshes.entry(pos).or_insert_with(|| generate_mesh(pos, blocks));
     }
 
     pub fn prune(&mut self, active_positions: HashSet<ChunkPos>) {
         self.meshes.retain(|pos, _| active_positions.contains(pos));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ChunkPos, &Mesh)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ChunkPos, &RenderMesh)> {
         self.meshes.iter()
     }
 
-    pub fn meshes(&mut self) -> &HashMap<ChunkPos, Mesh> {
-       &(self.meshes)
-    }
-
-    
-
-    pub fn meshes_from_world<'frame>(&mut self) -> Vec<RenderMesh> {
+    pub fn meshes(&self) -> Vec<&RenderMesh> {
         let mut meshes = Vec::new();
-        for (pos, mesh) in self.iter() {
-            meshes.push(
-                RenderMesh {
-                    mesh: &mesh,
-                    model: model_for_chunk(*pos)
-                }
-            );
+        for (_pos, mesh) in self.iter() {
+            meshes.push(mesh);
         }
-
         meshes
     }
 }
 
-pub fn generate_mesh(chunk: &Chunk) -> Mesh {
-    let blocks = chunk.blocks;
+impl EventHandler for ChunkMeshManager {
+    fn on_event(&mut self, event: &Event) {
+        if let Event::ChunkLoaded(pos, blocks) = event {
+            println!("Making chunk at {}, {}, {}", pos.0, pos.1, pos.2);
+            self.get_or_create(*pos, blocks);
+        } else if let Event::ChunkUnloaded(pos) = event {
+            println!("Chunk Unloaded at {}, {}, {}", pos.0, pos.1, pos.2);
+            self.meshes.remove(pos);
+        }
+    }
+}
 
+fn generate_mesh(pos: ChunkPos, blocks: &ChunkBlockData) -> RenderMesh {
+    //println!("Generating mesh...");
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -109,7 +93,16 @@ pub fn generate_mesh(chunk: &Chunk) -> Mesh {
         }
     }
 
-    Mesh::from_vertices_and_indices(&vertices, &indices)
+    RenderMesh{
+        model: Mat4::from_translation(
+            Vec3::new(
+                pos.0 as f32,
+                pos.1 as f32,
+                pos.2 as f32
+            ) * CHUNK_SIZE as f32 * VOXEL_SIZE
+        ),
+        mesh: Mesh::from_vertices_and_indices(&vertices, &indices)
+    }
 }
 
 pub fn model_for_chunk(pos: ChunkPos) -> Mat4 {

@@ -1,5 +1,7 @@
 use noise::{Perlin, NoiseFn};
 
+use super::ChunkPos;
+
 pub const VOXEL_SIZE: f32 = 0.1;
 pub const CHUNK_SIZE: usize = 16;
 
@@ -53,7 +55,11 @@ impl Chunk {
         Self {
             blocks
         }
-    } 
+    }
+
+    pub fn blocks(&self) -> &ChunkBlockData {
+        &self.blocks
+    }
 }
 
 impl<'a> IntoIterator for &'a Chunk {

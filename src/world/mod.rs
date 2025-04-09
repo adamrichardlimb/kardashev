@@ -1,23 +1,18 @@
 pub mod chunk;
 pub mod chunk_mesh_manager;
 
-
-use crate::rendering::render_context::RenderMesh;
+use std::collections::hash_map::Entry::Vacant;
+use crate::events::{EventQueue, Event, Event::ChunkUnloaded};
 use crate::world::chunk::Chunk;
 use crate::{VOXEL_SIZE, CHUNK_SIZE};
-use chunk_mesh_manager::{generate_mesh, model_for_chunk, ChunkMeshManager};
 use noise::Perlin;
 use std::collections::{HashMap, HashSet};
-use glam::{Vec3, Mat4};
+use glam::Vec3;
 
-pub enum ChunkChange {
-    Loaded(ChunkPos),
-    Unloaded(ChunkPos),
-}
 
 pub type ChunkPos = (i32, i32, i32);
 pub type ChunkMap = HashMap<ChunkPos, Chunk>;
-const CHUNK_DISTANCE: i32 = 5;
+const CHUNK_DISTANCE: i32 = 3;
 
 pub struct World {
     pub seed: u32,
@@ -53,18 +48,19 @@ impl World {
         }
     }
 
-    pub fn update(&mut self, player_pos: Vec3) -> Vec<ChunkChange> {
-        let mut changes = Vec::new();
-
+    pub fn update(&mut self, player_pos: Vec3, event_queue: &mut EventQueue) {
        //Generate chunks near the player based on the seed
        let center = world_to_chunk_pos(player_pos);
        let loaded_chunks: HashSet<ChunkPos> = chunk_range(center).collect();
        let perlin = Perlin::new(self.seed);
 
        for &pos in &loaded_chunks {
-           if !self.chunks.contains_key(&pos) {
-               self.chunks.entry(pos).or_insert_with(|| Chunk::from_perlin_noise(pos, &perlin));
-               changes.push(ChunkChange::Loaded(pos));
+           if let Vacant(entry) = self.chunks.entry(pos) {
+               let chunk = Chunk::from_perlin_noise(pos, &perlin);
+               let blocks = chunk.blocks.clone();
+               entry.insert(chunk);
+               event_queue.push_event(Event::ChunkLoaded(pos, blocks));
+               println!("We have {} chunks.", self.chunks.len());
            }
        }
 
@@ -72,11 +68,10 @@ impl World {
             if loaded_chunks.contains(&pos) {
                 true
             } else {
-                changes.push(ChunkChange::Unloaded(pos));
+                event_queue.push_event(ChunkUnloaded(pos));
                 false
             }
         });
 
-        changes
     }
 }

@@ -82,44 +82,42 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
 
     pub fn render(&mut self, render_context: RenderContext) {
         unsafe {
-            //Reset all at start of loop
+            // Clear and setup
             gl::ClearColor(0.5, 0.5, 1.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             gl::Enable(gl::DEPTH_TEST);
 
-            //Start by rendering all meshes
+            // Use 3D shader
             gl::UseProgram(self.shader.shader_program_id);
             let projection_matrix: Mat4 = camera::get_projection_matrix(&self.active_lens);
             let view_matrix: Mat4 = camera::get_view_matrix(render_context.camera);
 
-            //Tell OpenGL to use our matrices
             let projection_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"projection\0".as_ptr() as *const i8);
             gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection_matrix.as_ref().as_ptr());
+
             let view_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"view\0".as_ptr() as *const i8);
             gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view_matrix.as_ref().as_ptr());
 
-            for cmd in self.render_queue.iter() {
-                if let RenderCommand::RenderMesh { mesh, model_matrix } = cmd {
-                    //Set colour of our vertices
-                    let color_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"color\0".as_ptr() as *const i8);
-                    gl::Uniform3f(color_loc, 0.5, 0.0, 0.5);
+            for render_mesh in render_context.meshes.iter() {
+                let model_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"model\0".as_ptr() as *const i8);
+                gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, render_mesh.model.as_ref().as_ptr());
 
-                    let model_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"model\0".as_ptr() as *const i8);
-                    gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model_matrix.as_ref().as_ptr());
-                    mesh.draw();
+                let color_loc = gl::GetUniformLocation(self.shader.shader_program_id, b"color\0".as_ptr() as *const i8);
+                gl::Uniform3f(color_loc, 0.5, 0.0, 0.5);
 
-                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-                    gl::LineWidth(1.0);
-                    gl::Disable(gl::DEPTH_TEST);
-                    // optional: draw outlines over filled faces
-                    gl::Uniform3f(color_loc, 1.0, 0.0, 1.0);
-                    mesh.draw();
-                    gl::Enable(gl::DEPTH_TEST);
-                    gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
-                }
+                render_mesh.mesh.draw();
+
+                // Optional outline rendering
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                gl::LineWidth(1.0);
+                gl::Disable(gl::DEPTH_TEST);
+                gl::Uniform3f(color_loc, 1.0, 0.0, 1.0);
+                render_mesh.mesh.draw();
+                gl::Enable(gl::DEPTH_TEST);
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
             }
 
-            //Set up for rendering in 2D
+            // Switch to 2D text rendering
             gl::Disable(gl::DEPTH_TEST);
             gl::UseProgram(self.text_shader.shader_program_id);
             gl::Enable(gl::BLEND);
@@ -129,28 +127,22 @@ impl<'a, 'frame> Renderer<'a, 'frame> {
             let screen_size_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"screen_size\0".as_ptr() as *const i8);
             gl::Uniform2f(screen_size_loc, screen_size[0], screen_size[1]);
 
-            for cmd in self.render_queue.iter() {
-                if let RenderCommand::RenderText { surface, texture } = cmd {
-                   
-                    println!("Drawing with texture_id {}", texture.texture_id);
+            for surface in render_context.quads.iter() {
+                let texture = &surface.texture; // assuming this method exists
 
-                    // Set screen_pos and scale
-                    let screen_pos_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"screen_pos\0".as_ptr() as *const i8);
-                    let scale_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"scale\0".as_ptr() as *const i8);
-                    gl::Uniform2f(screen_pos_loc, 0.0, 0.0);
-                    gl::Uniform2f(scale_loc, texture.width as f32, texture.height as f32);
+                let screen_pos_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"screen_pos\0".as_ptr() as *const i8);
+                let scale_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"scale\0".as_ptr() as *const i8);
+                let sampler_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"text_texture\0".as_ptr() as *const i8);
 
-                    let sampler_loc = gl::GetUniformLocation(self.text_shader.shader_program_id, b"text_texture\0".as_ptr() as *const i8);
-                    gl::Uniform1i(sampler_loc, 0);
+                gl::Uniform2f(screen_pos_loc, 0.0, 0.0);
+                gl::Uniform2f(scale_loc, texture.width as f32, texture.height as f32);
+                gl::Uniform1i(sampler_loc, 0);
 
-                    surface.draw_with_texture(texture.texture_id);
-                }
+                surface.quad.draw_with_texture(texture.texture_id);
             }
-
-            self.render_queue.clear();
         }
 
-        // Show it on the screen
         self.window.gl_swap_window();
     }
+
 }

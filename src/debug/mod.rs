@@ -28,9 +28,8 @@ impl DebugOverlay {
         }
     }
 
-    pub fn update(&mut self, frame_time: Duration, chunk_count: usize, camera: &Camera) {
+    pub fn update(&mut self, frame_time: Duration, camera: &Camera) {
         self.frame_time_ms = frame_time.as_secs_f64() * 1000.0;
-        self.chunk_count = chunk_count;
         self.camera_position = camera.position();
         self.camera_pitch = camera.pitch();
         self.camera_yaw = camera.yaw();
