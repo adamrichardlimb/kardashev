@@ -1,4 +1,4 @@
-use crate::events::{Event, EventHandler};
+use crate::events::{Event, EventHandler, EventType};
 use crate::world::{ChunkPos, chunk::ChunkBlockData};
 use crate::rendering::mesh::Mesh;
 use crate::{VOXEL_SIZE, CHUNK_SIZE};
@@ -41,10 +41,6 @@ impl ChunkMeshManager {
         self.meshes.entry(pos).or_insert_with(|| generate_mesh(pos, blocks));
     }
 
-    pub fn prune(&mut self, active_positions: HashSet<ChunkPos>) {
-        self.meshes.retain(|pos, _| active_positions.contains(pos));
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = (&ChunkPos, &RenderMesh)> {
         self.meshes.iter()
     }
@@ -61,17 +57,21 @@ impl ChunkMeshManager {
 impl EventHandler for ChunkMeshManager {
     fn on_event(&mut self, event: &Event) {
         if let Event::ChunkLoaded(pos, blocks) = event {
-            println!("Making chunk at {}, {}, {}", pos.0, pos.1, pos.2);
             self.get_or_create(*pos, blocks);
         } else if let Event::ChunkUnloaded(pos) = event {
-            println!("Chunk Unloaded at {}, {}, {}", pos.0, pos.1, pos.2);
             self.meshes.remove(pos);
         }
+    }
+
+    fn event_types(&self) -> Vec<EventType> {
+        let mut events = Vec::new();
+        events.push(EventType::ChunkLoaded);
+        events.push(EventType::ChunkUnloaded);
+        events
     }
 }
 
 fn generate_mesh(pos: ChunkPos, blocks: &ChunkBlockData) -> RenderMesh {
-    //println!("Generating mesh...");
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 

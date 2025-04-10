@@ -39,8 +39,6 @@ impl Controller for CameraController {
 
         //Handle mouse motion
         if let Some(mouse_movement) = mouse_motion {
-            println!("Mouse motion is {}, {}", mouse_movement.0, mouse_movement.1);
-
             let adjusted_movement = (mouse_movement.0 as f32 * self.look_sensitivity, mouse_movement.1 as f32 * self.look_sensitivity);
             actions.push(InputAction::LookDelta(adjusted_movement));
         }

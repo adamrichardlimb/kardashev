@@ -4,6 +4,8 @@ mod world;
 mod debug;
 mod events;
 
+use tracing::debug;
+use tracing_subscriber::EnvFilter;
 use std::cell::RefCell;
 use std::rc::Rc;
 use rendering::render_context::RenderContext;
@@ -13,49 +15,66 @@ use debug::DebugOverlay;
 use gl;
 use input::{controllers::camera_controller::CameraController, InputAction, InputDispatcher};
 use rendering::{text, camera::Camera};
-use world::chunk_mesh_manager::{ChunkMeshManager};
+use world::chunk_mesh_manager::ChunkMeshManager;
 use world::World;
 
 use world::chunk::{CHUNK_SIZE, VOXEL_SIZE};
 
 pub fn main() -> Result<(), String> {
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
 
+    //Start by setting up logging...
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    debug!(target: "sdl2", "Initialising SDL2...");
+    let sdl_context = sdl2::init()?;
+    debug!(target: "sdl2", "SDL2 Initialised.");
+
+    debug!(target: "video_subsystem", "Attempting to create video subsystem from SDL context...");
+    let video_subsystem = sdl_context.video()?;
+    debug!(target: "video_subsystem", "Video subsystem created with no issues.");
+
+    debug!(target: "window", "Creating window from video subsystem...");
     let mut window = video_subsystem
         .window("Kardashev", 800, 600)
         .opengl()
         .build()
         .map_err(|e| e.to_string())?;
+    debug!(target: "window", "Window created from video subsystem");
 
+    debug!(target: "opengl", "Attempting to establish an OpenGL context in our window...");
     let _gl_context = window.gl_create_context().unwrap();
+    debug!(target: "opengl", "OpenGL context created. Function will be loaded afterwards, but no debugging support can be provided due to OpenGL using raw C.");
     let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
-
-    let mut event_queue = events::EventQueue::new();
-    let world = Rc::new(RefCell::new(World::new()));
 
     window.set_mouse_grab(true);
     sdl_context.mouse().capture(true);
     sdl_context.mouse().show_cursor(false);
     sdl_context.mouse().set_relative_mouse_mode(true);
 
+    debug!("Setting up SDL2 ttf context...");
     let sdl2_ttf = sdl2::ttf::init().expect("Failed to initialise the sdl2 ttf context!");
+    debug!("Established SDL2 ttf context, loading fonts...");
     let font = sdl2_ttf.load_font("assets/fonts/FiraCode-SemiBold.tff", 12).expect("Failed to import font.");
 
+    debug!(target: "kardashev_startup", "Creating Kardashev world requirements...");
     let mut camera = Camera::new();
     let mut debugger = DebugOverlay::new();
-
     let mut renderer = rendering::init(&mut window);
     let event_pump = sdl_context.event_pump().unwrap();
     let mut input_handler = InputDispatcher::new(event_pump);
     let controller = CameraController::new();
+    let mut event_queue = events::EventQueue::new();
+    let world = Rc::new(RefCell::new(World::new()));
+    let chunk_mesh_manager = Rc::new(RefCell::new(ChunkMeshManager::new()));
+    debug!(target: "kardashev_startup", "Kardashev world requirements created.");
+
+    debug!(target: "kardashev_startup", "Linking up Kardashev world requirements.");
+    event_queue.register_handler(chunk_mesh_manager.clone());
     input_handler.set_controller(controller);
 
-    let chunk_mesh_manager = Rc::new(RefCell::new(ChunkMeshManager::new()));
-    let mut chunk_mesh_manager_event_types = Vec::new();
-    chunk_mesh_manager_event_types.push(events::EventType::ChunkLoaded);
-    chunk_mesh_manager_event_types.push(events::EventType::ChunkUnloaded);
-    event_queue.register_listener(chunk_mesh_manager_event_types, chunk_mesh_manager.clone());
+    debug!("Hello from {}", module_path!());
 
     'main: loop {
         let frame_start = std::time::Instant::now();
@@ -78,8 +97,6 @@ pub fn main() -> Result<(), String> {
         let quad = text::new_text_quad();
 
         let fps = Surface2D {quad, texture};
-
-        println!("{}", chunk_mesh_manager.borrow().meshes().len());
 
         let mut quads = Vec::new();
         quads.push(&fps);

@@ -26,6 +26,7 @@ impl Event {
 
 pub trait EventHandler {
     fn on_event(&mut self, event: &Event);
+    fn event_types(&self) -> Vec<EventType>;
 }
 
 pub struct EventQueue {
@@ -45,14 +46,24 @@ impl EventQueue {
         self.events.push(event);
     }
 
-    pub fn register_listener(&mut self, event_types: Vec<EventType>, listener: Rc<RefCell<dyn EventHandler>>) {
-        for event_type in event_types {
-            self.listeners.entry(event_type).or_default().push(listener.clone());
+    pub fn register_handler(&mut self, handler: Rc<RefCell<dyn EventHandler>>) {
+        let types = handler.borrow().event_types();
+        for event_type in types {
+            self.listeners.entry(event_type).or_default().push(handler.clone());
         }
     }
 
+    pub fn deregister_handler(&mut self, handler: Rc<RefCell<dyn EventHandler>>) {
+        let types = handler.borrow().event_types();
+        for event_type in types {
+            if let Some(handlers) = self.listeners.get_mut(&event_type) {
+                handlers.retain(|h| !Rc::ptr_eq(h, &handler));
+            }
+        }
+    }
+
+
     pub fn dispatch_events(&mut self) {
-        println!("Dispatching {} events...", self.events.len());
         for event in self.events.drain(..) {
             if let Some(listeners) = self.listeners.get(&event.event_type()) {
                 for listener in listeners {

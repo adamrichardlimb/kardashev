@@ -40,15 +40,11 @@ impl Camera {
             forward * local_delta.z;
 
         self.position += movement;
-    }
- 
-
+    } 
 
     pub fn apply_look(&mut self, delta: (f32, f32)) {
         self.yaw += delta.0;
         self.pitch -= delta.1;
-
-        println!("Applying look of {}, {}", delta.0, delta.1);
 
         //ChatGPT says prevent flip, I assume this is so I cannot look over my own head
         self.pitch = self.pitch.clamp(-1.55, 1.55);

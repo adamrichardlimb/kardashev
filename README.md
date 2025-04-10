@@ -4,11 +4,10 @@ Kardashev is a (yet another) sandbox voxel game based, this time based around te
 
 ## TODO
 
-- [ ] Move all SDL2 features into an SDL2 struct which exposes what we need and abstracts away the details.
-- [ ] Create Renderable trait and make it easy for Renderable objects to add themselves to the queue.
+- [ ] Create an event hookup system so systems can listen for specific events.
 - [ ] Start implementing benchmarking tools, tests.
-- [ ] Optimise texture drawing so old textures are discarded so IDs can be re-used.
 - [ ] Optimise meshes so we have one mesh per chunk and not one mesh per voxel.
+- [ ] Actually make some world generation, and not just perlin noise in all axes.
 - [ ] Introduce physics and new controllers.
 - [ ] Basic GUI stuff
 - [ ] Add a menu now that you have text rendering.

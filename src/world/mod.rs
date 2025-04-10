@@ -60,7 +60,6 @@ impl World {
                let blocks = chunk.blocks.clone();
                entry.insert(chunk);
                event_queue.push_event(Event::ChunkLoaded(pos, blocks));
-               println!("We have {} chunks.", self.chunks.len());
            }
        }
 
