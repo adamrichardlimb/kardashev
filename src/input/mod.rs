@@ -13,6 +13,13 @@ pub struct InputDispatcher<'a> {
     mouse_motion: Option<(i32, i32)>
 }
 
+pub struct FrameInput {
+    pub keys_pressed: HashSet<Keycode>,
+    pub keys_released: HashSet<Keycode>,
+    pub keys_held: HashSet<Keycode>,
+    pub mouse_motion: Option<(i32, i32)>
+}
+
 //TODO - this is temp code for emitting actions to stop CameraController possessing a mutable
 //borrow indefinitely
 pub enum InputAction {
@@ -23,7 +30,7 @@ pub enum InputAction {
 }
 
 pub trait Controller {
-    fn map_keys(&mut self, keys_held: HashSet<Keycode>, mouse_motion: Option<(i32, i32)>) -> Vec<InputAction>;
+    fn map_keys(&mut self, input: &FrameInput) -> Vec<InputAction>;
 }
 
 impl<'a> InputDispatcher<'a> {
@@ -44,29 +51,45 @@ impl<'a> InputDispatcher<'a> {
         self.active_controller = Some(Box::new(controller)); 
     }
 
-    pub fn poll_events(&mut self) -> Result<Vec<InputAction>, String> {
+    pub fn poll_events(&mut self) -> Result<FrameInput, String> {
         debug!("Polling for input events...");
+        let mut keys_pressed = HashSet::new();
+        let mut keys_released = HashSet::new();
         self.mouse_motion = None;
 
         for event in self.event_pump.poll_iter() {
             match event {
-                Event::KeyDown { keycode: Some(k), .. } => {
+                Event::KeyDown { keycode: Some(k), repeat: false, .. } => {
+                    if !self.keys_held.contains(&k) {
+                        keys_pressed.insert(k);
+                    }
                     self.keys_held.insert(k);
-                },
+                }
                 Event::KeyUp { keycode: Some(k), .. } => {
                     self.keys_held.remove(&k);
-                },
-                Event::MouseMotion {xrel, yrel, ..} => {
+                    keys_released.insert(k);
+                }
+                Event::MouseMotion { xrel, yrel, .. } => {
                     self.mouse_motion = Some((xrel, yrel));
                 }
-                _ => {self.mouse_motion = None}
+                _ => {}
             }
         }
 
+        Ok(FrameInput {
+            keys_pressed,
+            keys_released,
+            keys_held: self.keys_held.clone(),
+            mouse_motion: self.mouse_motion,
+        })
+    }
+
+    pub fn update(&mut self) -> Result<Vec<InputAction>, String> {
+        let input = self.poll_events()?;
         return Ok(self.active_controller
-                    .as_mut()
-                    .expect("No active controller!")
-                    .map_keys(self.keys_held.clone(), self.mouse_motion)
+            .as_mut()
+            .expect("No active controller!")
+            .map_keys(&input)
         );
     }
 }

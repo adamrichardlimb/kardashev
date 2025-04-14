@@ -84,7 +84,6 @@ pub fn main() -> Result<(), String> {
 
     'main: loop {
         let frame_start = std::time::Instant::now();
-        let actions = input_handler.poll_events().expect("Error occurred in the input handling loop.");
         world.borrow_mut().update(camera.position(), &mut event_queue);        
         event_queue.dispatch_events();
 
@@ -107,7 +106,7 @@ pub fn main() -> Result<(), String> {
         let mut quads = Vec::new();
         quads.push(&fps);
 
-        for action in actions {
+        for action in input_handler.update().expect("Error in input handling loop!") {
             match action {
                 InputAction::Quit => break 'main,
                 InputAction::MoveCamera(delta) => camera.move_by(delta),
