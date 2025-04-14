@@ -31,6 +31,7 @@ impl Controller for CameraController {
                 Keycode::A => Vec3::new(-1.0, 0.0, 0.0),
                 Keycode::D => Vec3::new(1.0, 0.0, 0.0),
                 Keycode::ESCAPE => return vec!(InputAction::Quit),
+                Keycode::F1 => return vec!(InputAction::ToggleDebugModule(1)),
                 _ => Vec3::ZERO
             };
 

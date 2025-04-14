@@ -1,11 +1,11 @@
 pub mod controllers;
 
+use tracing::debug;
 use std::collections::HashSet;
 use glam::Vec3;
 use sdl2::{event::Event, keyboard::Keycode, EventPump};
 
 //TODO - Create an input buffer for the InputDispatcher
-//Maybe input buffers should sit in the controllers too?
 pub struct InputDispatcher<'a> {
     event_pump: EventPump,
     active_controller: Option<Box<dyn Controller + 'a>>,
@@ -18,6 +18,7 @@ pub struct InputDispatcher<'a> {
 pub enum InputAction {
     MoveCamera(Vec3),
     LookDelta((f32, f32)),
+    ToggleDebugModule(i32),
     Quit
 }
 
@@ -39,10 +40,12 @@ impl<'a> InputDispatcher<'a> {
     }
 
     pub fn set_controller<C: Controller + 'a>(&mut self, controller: C) {
-       self.active_controller = Some(Box::new(controller)); 
+        debug!("Active controller changing...");
+        self.active_controller = Some(Box::new(controller)); 
     }
 
     pub fn poll_events(&mut self) -> Result<Vec<InputAction>, String> {
+        debug!("Polling for input events...");
         self.mouse_motion = None;
 
         for event in self.event_pump.poll_iter() {
@@ -65,6 +68,5 @@ impl<'a> InputDispatcher<'a> {
                     .expect("No active controller!")
                     .map_keys(self.keys_held.clone(), self.mouse_motion)
         );
-        
     }
 }

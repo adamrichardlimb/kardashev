@@ -2,9 +2,7 @@ use std::path::Path;
 use gl::types::{GLenum, GLuint};
 use std::fs::read_to_string;
 use regex::Regex;
-
-
-pub type GlslBinding<'shader_initialisation> = (&'shader_initialisation str, u32);
+use tracing::debug;
 
 //TODO
 //The idea is you create a shader and get a mutable reference to it
@@ -21,51 +19,49 @@ pub struct Shader {
 
 fn initialise_shader(shader_code: &str, shader_type: GLenum) -> Result<GLuint, String> {
   unsafe {
-  //Match for vertex and fragment shaders
-  //Otherwise throw an error
-  if shader_type != 0x8B30 && shader_type != 0x8B31 {
-      return Err("Shader_type provided is not either a fragment (0x8B30) or vertex shader (0x8B31).".to_string());
-  }
+      //Match for vertex and fragment shaders
+      //Otherwise throw an error
+      if shader_type != 0x8B30 && shader_type != 0x8B31 {
+          return Err("Shader_type provided is not either a fragment (0x8B30) or vertex shader (0x8B31).".to_string());
+      }
 
-  println!("Shader types are fine.");
+      debug!("Initialising a shader of type {}...", shader_type);
 
-  let shader = gl::CreateShader(shader_type);
+      let shader = gl::CreateShader(shader_type);
+      if shader == 0 {
+          return Err("An error occurred when attempting to set up a shader with OpenGL, this occurred before importing shader code.".to_string());
+      }
 
-  if shader == 0 {
-      return Err("An error occurred when attempting to set up a shader with OpenGL, this occurred before importing shader code.".to_string());
-  }
-
-  println!("Shader was set up with OpenGL.");
-  
-  gl::ShaderSource(
-    shader,
-    1,
-    &(shader_code.as_bytes().as_ptr().cast()),
-    &(shader_code.len().try_into().unwrap())
-  );
-  
-  gl::CompileShader(shader);
-
-  let mut success = 0;
-  gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
-  
-  if success == 0 {
-      let mut v: Vec<u8> = Vec::with_capacity(1024);
-      let mut log_len = 0_i32;
-      gl::GetShaderInfoLog(
-          shader,
-          1024,
-          &mut log_len,
-          v.as_mut_ptr().cast(),
+      debug!("Shader initialised with OpenGL, attempting to parse shader code and compile shader...");
+      
+      gl::ShaderSource(
+        shader,
+        1,
+        &(shader_code.as_bytes().as_ptr().cast()),
+        &(shader_code.len().try_into().unwrap())
       );
-      v.set_len(log_len.try_into().unwrap());
-      println!("Shader failed to compile.");
-      return Err(String::from_utf8_lossy(&v).to_string());
-  }
+      gl::CompileShader(shader);
 
-  println!("Shader compiled.");
+      let mut success = 0;
+      gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+      
+      if success == 0 {
+          let mut v: Vec<u8> = Vec::with_capacity(1024);
+          let mut log_len = 0_i32;
+          gl::GetShaderInfoLog(
+              shader,
+              1024,
+              &mut log_len,
+              v.as_mut_ptr().cast(),
+          );
+          v.set_len(log_len.try_into().unwrap());
+          debug!("Shader failed to compile.");
+          return Err(String::from_utf8_lossy(&v).to_string());
+      }
 
-  return Ok(shader);
+      debug!("Shader of type {} successfully compiled.", shader_type);
+
+      return Ok(shader);
   }
 }
 
@@ -89,6 +85,8 @@ pub fn create_shader<T: AsRef<Path>>(vertex_shader_path: T, fragment_shader_path
             Ok(id) => id,
             Err(error_string) => return Err(error_string),
         };
+
+        debug!("Attempting to create a shader program with OpenGL...");
         
         //Create a shader program and save
         let shader_program_id = gl::CreateProgram();
@@ -97,14 +95,15 @@ pub fn create_shader<T: AsRef<Path>>(vertex_shader_path: T, fragment_shader_path
             return Err("An error occurred while making the shader program, debug code for this is TODO.".to_string());
         }
 
-        println!("Shader program created, with program ID {}, vertex shader id {}, and fragment shader id {}", shader_program_id, vertex_shader_id, fragment_shader_id);
+        debug!("Shader program created, with program ID {}, vertex shader id {}, and fragment shader id {}", shader_program_id, vertex_shader_id, fragment_shader_id);
+        debug!("Attempting to attach shaders to program...");
 
         //Link them up
         gl::AttachShader(shader_program_id, vertex_shader_id);
         gl::AttachShader(shader_program_id, fragment_shader_id);
 
         for (name, loc) in &attribute_bindings {
-            println!("{}", name);
+            debug!("{}", name);
             //gl::BindAttribLocation(
                 //shader_program_id,
                 //*loc,
@@ -114,7 +113,7 @@ pub fn create_shader<T: AsRef<Path>>(vertex_shader_path: T, fragment_shader_path
 
         gl::LinkProgram(shader_program_id);
         
-        println!("Shaders attached.");
+        debug!("Shaders attached.");
 
         let mut success = 0;
         gl::GetProgramiv(shader_program_id, gl::LINK_STATUS, &mut success);
@@ -128,21 +127,21 @@ pub fn create_shader<T: AsRef<Path>>(vertex_shader_path: T, fragment_shader_path
               v.as_mut_ptr().cast(),
           );
           v.set_len(log_len.try_into().unwrap());
-          println!("Link success: {}", success);
-          println!("Log length: {}", log_len);
+          debug!("Link success: {}", success);
+          debug!("Log length: {}", log_len);
           return Err(String::from_utf8_lossy(&v).to_string());
     }
 
-    println!("Shader program compiled successfully.");
+    debug!("Shader program compiled successfully.");
 
     gl::DeleteShader(vertex_shader_id);
     gl::DeleteShader(fragment_shader_id);
 
-    println!("Shaders deleted now they have been attached.");
+    debug!("Shaders deleted now they have been attached.");
 
     gl::UseProgram(shader_program_id);
 
-    println!("Shader program now being used.");
+    debug!("Shader program now being used.");
 
     return Ok(Shader {
         shader_program_id,

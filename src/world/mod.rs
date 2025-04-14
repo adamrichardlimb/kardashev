@@ -1,6 +1,7 @@
 pub mod chunk;
 pub mod chunk_mesh_manager;
 
+use tracing::debug;
 use std::collections::hash_map::Entry::Vacant;
 use crate::events::{EventQueue, Event, Event::ChunkUnloaded};
 use crate::world::chunk::Chunk;
@@ -42,6 +43,8 @@ pub fn chunk_range(center: (i32, i32, i32)) -> impl Iterator<Item = (i32, i32, i
 
 impl World {
     pub fn new() -> Self {
+        //TODO - make actually add seeding.
+        debug!("New world created with default seed.");
         Self {
             seed: 24601,
             chunks: ChunkMap::new()
@@ -49,13 +52,16 @@ impl World {
     }
 
     pub fn update(&mut self, player_pos: Vec3, event_queue: &mut EventQueue) {
+        debug!("Updating world...");
        //Generate chunks near the player based on the seed
        let center = world_to_chunk_pos(player_pos);
        let loaded_chunks: HashSet<ChunkPos> = chunk_range(center).collect();
        let perlin = Perlin::new(self.seed);
 
        for &pos in &loaded_chunks {
+           debug!("Checking loaded chunk: ({}, {}, {})", &pos.0, &pos.1, &pos.2);
            if let Vacant(entry) = self.chunks.entry(pos) {
+               debug!("Chunk at ({}, {}, {}) is missing. Generating chunk and pushing event.", &pos.0, &pos.1, &pos.2);
                let chunk = Chunk::from_perlin_noise(pos, &perlin);
                let blocks = chunk.blocks.clone();
                entry.insert(chunk);
@@ -67,10 +73,10 @@ impl World {
             if loaded_chunks.contains(&pos) {
                 true
             } else {
+                debug!("Chunk at ({}, {}, {}) no longer needed - unloading and pushing event.", &pos.0, &pos.1, &pos.2);
                 event_queue.push_event(ChunkUnloaded(pos));
                 false
             }
         });
-
     }
 }

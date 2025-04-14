@@ -3,7 +3,10 @@ use crate::world::ChunkPos;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::collections::HashMap;
+use tracing::debug;
+use strum_macros::Display;
 
+#[derive(Display)]
 pub enum Event {
     ChunkLoaded(ChunkPos, ChunkBlockData),
     ChunkUnloaded(ChunkPos)
@@ -64,8 +67,10 @@ impl EventQueue {
 
 
     pub fn dispatch_events(&mut self) {
+        debug!("Dispatching {} events...", self.events.len());
         for event in self.events.drain(..) {
             if let Some(listeners) = self.listeners.get(&event.event_type()) {
+            debug!("Dispatching {} event to {} listeners...", event, listeners.len());
                 for listener in listeners {
                     listener.borrow_mut().on_event(&event);
                 }

@@ -1,4 +1,5 @@
 use glam::{Mat4, Vec3};
+use tracing::debug;
 
 pub struct Camera {
     position: Vec3,
@@ -30,14 +31,18 @@ pub fn get_projection_matrix(lens: &Lens) -> Mat4 {
 
 impl Camera {
     pub fn move_by(&mut self, local_delta: Vec3) {
+        //The co-ordinate system according to our camera orientation
         let right = self.forward.cross(self.up).normalize();
         let up = self.up;
         let forward = self.forward;
 
-        let movement = 
-            right * local_delta.x +
-            up    * local_delta.y -
-            forward * local_delta.z;
+        //How much we're moving by
+        let x = right * local_delta.x;
+        let y = up * local_delta.y;
+        let z = - forward * local_delta.z;
+        let movement = x + y + z;
+
+        debug!("Moving camera by ({}, {}, {})", movement.x, movement.y, movement.z);
 
         self.position += movement;
     } 
@@ -45,6 +50,8 @@ impl Camera {
     pub fn apply_look(&mut self, delta: (f32, f32)) {
         self.yaw += delta.0;
         self.pitch -= delta.1;
+
+        debug!("Applying a yaw and pitch of {}, {}", delta.0, delta.1);
 
         //ChatGPT says prevent flip, I assume this is so I cannot look over my own head
         self.pitch = self.pitch.clamp(-1.55, 1.55);

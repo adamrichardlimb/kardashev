@@ -2,9 +2,10 @@ use crate::events::{Event, EventHandler, EventType};
 use crate::world::{ChunkPos, chunk::ChunkBlockData};
 use crate::rendering::mesh::Mesh;
 use crate::{VOXEL_SIZE, CHUNK_SIZE};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use glam::{Mat4, Vec3};
 use crate::rendering::render_context::RenderMesh;
+use tracing::debug;
 
 pub struct ChunkMeshManager {
     meshes: HashMap<ChunkPos, RenderMesh>,
@@ -57,8 +58,10 @@ impl ChunkMeshManager {
 impl EventHandler for ChunkMeshManager {
     fn on_event(&mut self, event: &Event) {
         if let Event::ChunkLoaded(pos, blocks) = event {
+            debug!("ChunkLoaded event received - generating mesh...");
             self.get_or_create(*pos, blocks);
         } else if let Event::ChunkUnloaded(pos) = event {
+            debug!("ChunkUnloaded event received - removing mesh...");
             self.meshes.remove(pos);
         }
     }
@@ -72,6 +75,7 @@ impl EventHandler for ChunkMeshManager {
 }
 
 fn generate_mesh(pos: ChunkPos, blocks: &ChunkBlockData) -> RenderMesh {
+    debug!("Generating mesh at ({}, {}, {})...", pos.0, pos.1, pos.2);
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
 
@@ -94,13 +98,7 @@ fn generate_mesh(pos: ChunkPos, blocks: &ChunkBlockData) -> RenderMesh {
     }
 
     RenderMesh{
-        model: Mat4::from_translation(
-            Vec3::new(
-                pos.0 as f32,
-                pos.1 as f32,
-                pos.2 as f32
-            ) * CHUNK_SIZE as f32 * VOXEL_SIZE
-        ),
+        model: model_for_chunk(pos),
         mesh: Mesh::from_vertices_and_indices(&vertices, &indices)
     }
 }

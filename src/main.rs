@@ -5,7 +5,6 @@ mod debug;
 mod events;
 
 use tracing::debug;
-use tracing_subscriber::EnvFilter;
 use std::cell::RefCell;
 use std::rc::Rc;
 use rendering::render_context::RenderContext;
@@ -17,15 +16,21 @@ use input::{controllers::camera_controller::CameraController, InputAction, Input
 use rendering::{text, camera::Camera};
 use world::chunk_mesh_manager::ChunkMeshManager;
 use world::World;
-
+use tracing_subscriber::{fmt, EnvFilter};
+use tracing_subscriber::reload;
 use world::chunk::{CHUNK_SIZE, VOXEL_SIZE};
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 pub fn main() -> Result<(), String> {
-
     //Start by setting up logging...
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+    let filter = EnvFilter::from_default_env();
+    let (filter_layer, filter_handle) = reload::Layer::new(filter);
+
+    let subscriber = tracing_subscriber::registry()
+    .with(filter_layer)
+    .with(fmt::layer());
+
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 
     debug!(target: "sdl2", "Initialising SDL2...");
     let sdl_context = sdl2::init()?;
@@ -58,14 +63,17 @@ pub fn main() -> Result<(), String> {
     debug!("Established SDL2 ttf context, loading fonts...");
     let font = sdl2_ttf.load_font("assets/fonts/FiraCode-SemiBold.tff", 12).expect("Failed to import font.");
 
+    debug!("Creating event pump from SDL context...");
+    let event_pump = sdl_context.event_pump().unwrap();
+    debug!("Event pump created from SDL context");
+
     debug!(target: "kardashev_startup", "Creating Kardashev world requirements...");
     let mut camera = Camera::new();
-    let mut debugger = DebugOverlay::new();
+    let mut debugger = DebugOverlay::new(filter_handle);
     let mut renderer = rendering::init(&mut window);
-    let event_pump = sdl_context.event_pump().unwrap();
     let mut input_handler = InputDispatcher::new(event_pump);
-    let controller = CameraController::new();
     let mut event_queue = events::EventQueue::new();
+    let controller = CameraController::new();
     let world = Rc::new(RefCell::new(World::new()));
     let chunk_mesh_manager = Rc::new(RefCell::new(ChunkMeshManager::new()));
     debug!(target: "kardashev_startup", "Kardashev world requirements created.");
@@ -73,8 +81,6 @@ pub fn main() -> Result<(), String> {
     debug!(target: "kardashev_startup", "Linking up Kardashev world requirements.");
     event_queue.register_handler(chunk_mesh_manager.clone());
     input_handler.set_controller(controller);
-
-    debug!("Hello from {}", module_path!());
 
     'main: loop {
         let frame_start = std::time::Instant::now();
@@ -106,12 +112,11 @@ pub fn main() -> Result<(), String> {
                 InputAction::Quit => break 'main,
                 InputAction::MoveCamera(delta) => camera.move_by(delta),
                 InputAction::LookDelta(relative_direction) => camera.apply_look(relative_direction),
+                InputAction::ToggleDebugModule(1) => debugger.toggle_module("kardashev::rendering"),
+                _ => {}
             }
         }
 
-        let frame_duration = frame_start.elapsed();
-        debugger.update(frame_duration, &camera);
-      
         let mesh_ref = chunk_mesh_manager.borrow();
         let meshes = mesh_ref.meshes();
 
@@ -123,6 +128,9 @@ pub fn main() -> Result<(), String> {
             };
             renderer.render(render_context);
         }
+
+        let frame_duration = frame_start.elapsed();
+        debugger.update(frame_duration, &camera);
     }
 
     Ok(())
