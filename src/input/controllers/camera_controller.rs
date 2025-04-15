@@ -1,9 +1,9 @@
-use std::collections::HashSet;
-
+use std::collections::HashMap;
 use glam::Vec3;
+use crate::input::controllers::MouseMotion;
 use sdl2::keyboard::Keycode;
-
-use crate::input::{Controller, FrameInput, InputAction};
+use crate::input::{Controller, InputAction};
+use super::{Input, KeyMap};
 
 pub struct CameraController {
     pub movement_speed: f32,
@@ -19,37 +19,20 @@ impl<'a> CameraController {
     }
 }
 
-impl Controller for CameraController {
-    fn map_keys(&mut self, input: &FrameInput) -> Vec<InputAction> {
-        let mut actions = Vec::new();
+impl Controller for CameraController { 
+    fn keymap(&self) -> KeyMap {
+        let mut keymap = HashMap::new();
+        keymap.insert(Input::KeyPressed(Keycode::F1), InputAction::ToggleDebugModule(1));
+        keymap.insert(Input::KeyHeld(Keycode::W), InputAction::MoveCamera(Vec3::new(0.0, 0.0, -1.0) * self.movement_speed));
+        keymap.insert(Input::KeyHeld(Keycode::A), InputAction::MoveCamera(Vec3::new(-1.0, 0.0, 0.0) * self.movement_speed));
+        keymap.insert(Input::KeyHeld(Keycode::S), InputAction::MoveCamera(Vec3::new(0.0, 0.0, 1.0) * self.movement_speed));
+        keymap.insert(Input::KeyHeld(Keycode::D), InputAction::MoveCamera(Vec3::new(1.0, 0.0, 0.0) * self.movement_speed));
+        keymap.insert(Input::KeyHeld(Keycode::ESCAPE), InputAction::Quit);
+        keymap
+    }
 
-        for key in input.keys_pressed.clone() {
-            match key {
-                Keycode::F1 => return vec!(InputAction::ToggleDebugModule(1)),
-                _ => {}
-            }
-        }
-
-        //Handle key presses
-        for key in input.keys_held.clone() {
-            let delta = match key {
-                Keycode::W => Vec3::new(0.0, 0.0, -1.0),
-                Keycode::S => Vec3::new(0.0, 0.0, 1.0),
-                Keycode::A => Vec3::new(-1.0, 0.0, 0.0),
-                Keycode::D => Vec3::new(1.0, 0.0, 0.0),
-                Keycode::ESCAPE => return vec!(InputAction::Quit),
-                _ => Vec3::ZERO
-            };
-
-            if delta != Vec3::ZERO { actions.push(InputAction::MoveCamera(delta * self.movement_speed)); }
-        }
-
-        //Handle mouse motion
-        if let Some(mouse_movement) = input.mouse_motion {
-            let adjusted_movement = (mouse_movement.0 as f32 * self.look_sensitivity, mouse_movement.1 as f32 * self.look_sensitivity);
-            actions.push(InputAction::LookDelta(adjusted_movement));
-        }
-
-        actions
+    fn handle_mouse(&self, mouse_motion: MouseMotion) -> Option<InputAction> {
+        let adjusted_movement = (mouse_motion.0 as f32 * self.look_sensitivity, mouse_motion.1 as f32 * self.look_sensitivity);
+        Some(InputAction::LookDelta(adjusted_movement))
     }
 } 

@@ -1,5 +1,7 @@
 pub mod controllers;
 
+use crate::input::controllers::{Input, Controller};
+use controllers::MouseMotion;
 use tracing::debug;
 use std::collections::HashSet;
 use glam::Vec3;
@@ -14,23 +16,18 @@ pub struct InputDispatcher<'a> {
 }
 
 pub struct FrameInput {
-    pub keys_pressed: HashSet<Keycode>,
-    pub keys_released: HashSet<Keycode>,
-    pub keys_held: HashSet<Keycode>,
-    pub mouse_motion: Option<(i32, i32)>
+    pub keys_input: HashSet<Input>,
+    pub mouse_input: Option<MouseMotion>
 }
 
 //TODO - this is temp code for emitting actions to stop CameraController possessing a mutable
 //borrow indefinitely
+#[derive(Clone)]
 pub enum InputAction {
     MoveCamera(Vec3),
     LookDelta((f32, f32)),
     ToggleDebugModule(i32),
     Quit
-}
-
-pub trait Controller {
-    fn map_keys(&mut self, input: &FrameInput) -> Vec<InputAction>;
 }
 
 impl<'a> InputDispatcher<'a> {
@@ -53,21 +50,21 @@ impl<'a> InputDispatcher<'a> {
 
     pub fn poll_events(&mut self) -> Result<FrameInput, String> {
         debug!("Polling for input events...");
-        let mut keys_pressed = HashSet::new();
-        let mut keys_released = HashSet::new();
+        let mut keys_input = HashSet::new();
         self.mouse_motion = None;
 
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::KeyDown { keycode: Some(k), repeat: false, .. } => {
                     if !self.keys_held.contains(&k) {
-                        keys_pressed.insert(k);
+                        keys_input.insert(Input::KeyPressed(k));
                     }
+                    keys_input.insert(Input::KeyHeld(k));
                     self.keys_held.insert(k);
                 }
                 Event::KeyUp { keycode: Some(k), .. } => {
                     self.keys_held.remove(&k);
-                    keys_released.insert(k);
+                    keys_input.insert(Input::KeyReleased(k));
                 }
                 Event::MouseMotion { xrel, yrel, .. } => {
                     self.mouse_motion = Some((xrel, yrel));
@@ -77,10 +74,8 @@ impl<'a> InputDispatcher<'a> {
         }
 
         Ok(FrameInput {
-            keys_pressed,
-            keys_released,
-            keys_held: self.keys_held.clone(),
-            mouse_motion: self.mouse_motion,
+            keys_input,
+            mouse_input: self.mouse_motion,
         })
     }
 
@@ -89,7 +84,7 @@ impl<'a> InputDispatcher<'a> {
         return Ok(self.active_controller
             .as_mut()
             .expect("No active controller!")
-            .map_keys(&input)
+            .handle_input(input)
         );
     }
 }
