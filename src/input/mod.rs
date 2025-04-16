@@ -59,7 +59,6 @@ impl<'a> InputDispatcher<'a> {
                     if !self.keys_held.contains(&k) {
                         keys_input.insert(Input::KeyPressed(k));
                     }
-                    keys_input.insert(Input::KeyHeld(k));
                     self.keys_held.insert(k);
                 }
                 Event::KeyUp { keycode: Some(k), .. } => {
@@ -71,6 +70,10 @@ impl<'a> InputDispatcher<'a> {
                 }
                 _ => {}
             }
+        }
+
+        for key in self.keys_held.clone() {
+            keys_input.insert(Input::KeyHeld(key));
         }
 
         Ok(FrameInput {
