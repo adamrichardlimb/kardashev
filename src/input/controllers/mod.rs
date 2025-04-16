@@ -3,8 +3,9 @@ use crate::input::FrameInput;
 use std::collections::{HashMap, HashSet};
 use super::InputAction;
 
-//pub mod composite_controller;
+pub mod composite_controller;
 pub mod camera_controller;
+pub mod debug_overlay_controller;
 
 pub trait Controller {
     fn keymap(&self) -> KeyMap;
@@ -47,7 +48,7 @@ pub trait Controller {
 
 pub type MouseMotion = (i32, i32);
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq, Clone)]
 pub enum Input {
     KeyPressed(Keycode),
     KeyHeld(Keycode),

@@ -22,7 +22,6 @@ impl<'a> CameraController {
 impl Controller for CameraController { 
     fn keymap(&self) -> KeyMap {
         let mut keymap = HashMap::new();
-        keymap.insert(Input::KeyPressed(Keycode::F1), InputAction::ToggleDebugModule(1));
         keymap.insert(Input::KeyHeld(Keycode::W), InputAction::MoveCamera(Vec3::new(0.0, 0.0, -1.0) * self.movement_speed));
         keymap.insert(Input::KeyHeld(Keycode::A), InputAction::MoveCamera(Vec3::new(-1.0, 0.0, 0.0) * self.movement_speed));
         keymap.insert(Input::KeyHeld(Keycode::S), InputAction::MoveCamera(Vec3::new(0.0, 0.0, 1.0) * self.movement_speed));

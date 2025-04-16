@@ -4,6 +4,7 @@ mod world;
 mod debug;
 mod events;
 
+use input::controllers::{debug_overlay_controller::DebugOverlayController, composite_controller::CompositeController};
 use tracing::debug;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -73,7 +74,13 @@ pub fn main() -> Result<(), String> {
     let mut renderer = rendering::init(&mut window);
     let mut input_handler = InputDispatcher::new(event_pump);
     let mut event_queue = events::EventQueue::new();
-    let controller = CameraController::new();
+    let camera_controller = Box::new(CameraController::new());
+    let debug_controller = Box::new(DebugOverlayController{});
+    let mut controller = CompositeController::new();
+
+    controller.push_controller(camera_controller);
+    controller.push_controller(debug_controller);
+
     let world = Rc::new(RefCell::new(World::new()));
     let chunk_mesh_manager = Rc::new(RefCell::new(ChunkMeshManager::new()));
     debug!(target: "kardashev_startup", "Kardashev world requirements created.");
